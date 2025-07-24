@@ -1,12 +1,12 @@
-# Reverse-Engineering "Invisible Cheating App" Cluely
+# Reverse-Engineering "Invisible Cheating App" Shadowing
 
-Everyone saw Roy Lee's viral stunt with "Cluely," the invisible app designed to secretly ace coding interviews. He pissed off Columbia, Amazon, and pretty much everyone else—but let's skip past the controversy. I tore apart the app to see how it works, and turns out, the tech itself is genuinely interesting.
+Everyone saw Roy Lee's viral stunt with "Shadowing," the invisible app designed to secretly ace coding interviews. He pissed off Columbia, Amazon, and pretty much everyone else—but let's skip past the controversy. I tore apart the app to see how it works, and turns out, the tech itself is genuinely interesting.
 
-![Cluely Screenshot](image.png)
+![Shadowing Screenshot](image.png)
 
-### How Cluely Actually Works (Technical Breakdown)
+### How Shadowing Actually Works (Technical Breakdown)
 
-Roy built Cluely using Electron, a desktop app framework based on Chromium and Node.js, to create a transparent, always-on-top overlay:
+Roy built Shadowing using Electron, a desktop app framework based on Chromium and Node.js, to create a transparent, always-on-top overlay:
 
 - **Transparent Window (**`transparent: true`**)** – This Electron BrowserWindow property ensures the background is fully transparent, showing only explicitly rendered content.
 - **Always On Top (**`alwaysOnTop: true`**)** – Electron's flag forces the overlay window to persistently float above all other applications, making it consistently accessible without being covered.
@@ -60,4 +60,4 @@ Roy was trolling interviews, but here's the thing—this invisible overlay tech 
 
 ### Want to Use This for Good?
 
-Everything's open-sourced right [here](https://github.com/Prat011/free-cluely). If this sounds like something your team could use ethically and effectively, reach out. Let's build something legit. You can contact me at prathit3.14@gmail.com
+Everything's open-sourced right [here](https://github.com/Prat011/free-Shadowing). If this sounds like something your team could use ethically and effectively, reach out. Let's build something legit. You can contact me at prathit3.14@gmail.com

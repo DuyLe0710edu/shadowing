@@ -7,12 +7,14 @@ const WindowHelper_1 = require("./WindowHelper");
 const ScreenshotHelper_1 = require("./ScreenshotHelper");
 const shortcuts_1 = require("./shortcuts");
 const ProcessingHelper_1 = require("./ProcessingHelper");
+const SimpleTranslationDemo_1 = require("./SimpleTranslationDemo");
 class AppState {
     static instance = null;
     windowHelper;
     screenshotHelper;
     shortcutsHelper;
     processingHelper;
+    simpleTranslationDemo;
     // View management
     view = "queue";
     problemInfo = null; // Allow null
@@ -41,6 +43,8 @@ class AppState {
         this.processingHelper = new ProcessingHelper_1.ProcessingHelper(this);
         // Initialize ShortcutsHelper
         this.shortcutsHelper = new shortcuts_1.ShortcutsHelper(this);
+        // Initialize Simple Translation Demo (using existing Gemini)
+        this.simpleTranslationDemo = new SimpleTranslationDemo_1.SimpleTranslationDemo();
     }
     static getInstance() {
         if (!AppState.instance) {
@@ -132,6 +136,13 @@ class AppState {
     }
     getHasDebugged() {
         return this.hasDebugged;
+    }
+    // Simple translation demo methods
+    getSimpleTranslationDemo() {
+        return this.simpleTranslationDemo;
+    }
+    async startAreaSelection() {
+        await this.simpleTranslationDemo.startAreaSelection();
     }
 }
 exports.AppState = AppState;

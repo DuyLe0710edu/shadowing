@@ -1,4 +1,4 @@
-# Free Cluely
+# Free Shadowing
 
 A desktop application to help you cheat on everything. 
 
@@ -14,7 +14,7 @@ A desktop application to help you cheat on everything.
 1. Clone the repository:
 ```bash
 git clone [repository-url]
-cd free-cluely
+cd free-Shadowing
 ```
 
 2. Install dependencies:
@@ -31,7 +31,7 @@ npm install
    - Save the file
 
 ### Running the App
-
+v 
 #### Method 1: Development Mode (Recommended for first run)
 1. Open a terminal and run:
 ```bash

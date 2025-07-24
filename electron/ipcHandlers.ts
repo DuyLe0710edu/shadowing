@@ -106,4 +106,21 @@ export function initializeIpcHandlers(appState: AppState): void {
   ipcMain.handle("quit-app", () => {
     app.quit()
   })
+
+  // Translation system handlers
+  ipcMain.handle("start-area-selection", async () => {
+    return await appState.startAreaSelection()
+  })
+
+  ipcMain.handle("get-selected-regions", async () => {
+    return appState.getSimpleTranslationDemo().getSelectedRegions()
+  })
+
+  ipcMain.handle("delete-region", async (event, regionId: string) => {
+    return await appState.getSimpleTranslationDemo().deleteRegion(regionId)
+  })
+
+  ipcMain.handle("toggle-region-monitoring", async (event, regionId: string) => {
+    return await appState.getSimpleTranslationDemo().toggleRegionMonitoring(regionId)
+  })
 }

@@ -11,7 +11,7 @@ import {
 import QueueCommands from "../components/Queue/QueueCommands"
 
 interface QueueProps {
-  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "debug">>
+  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "translation">>
 }
 
 const Queue: React.FC<QueueProps> = ({ setView }) => {
@@ -149,6 +149,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
           <QueueCommands
             screenshots={screenshots}
             onTooltipVisibilityChange={handleTooltipVisibilityChange}
+            setView={setView}
           />
         </div>
       </div>

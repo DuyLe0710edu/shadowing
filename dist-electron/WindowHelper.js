@@ -1,5 +1,4 @@
 "use strict";
-// electron/WindowHelper.ts
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -7,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WindowHelper = void 0;
 const electron_1 = require("electron");
 const node_path_1 = __importDefault(require("node:path"));
+const OverlayWindowHelper_1 = require("./OverlayWindowHelper");
 const isDev = process.env.NODE_ENV === "development";
 const startUrl = isDev
     ? "http://localhost:5180"
@@ -17,14 +17,19 @@ class WindowHelper {
     windowPosition = null;
     windowSize = null;
     appState;
+    overlayHelper;
     // Initialize with explicit number type and 0 value
     screenWidth = 0;
     screenHeight = 0;
     step = 0;
     currentX = 0;
     currentY = 0;
+    // Translation overlay management
+    activeOverlays = new Set();
+    regionOverlayMap = new Map();
     constructor(appState) {
         this.appState = appState;
+        this.overlayHelper = new OverlayWindowHelper_1.OverlayWindowHelper();
     }
     setWindowDimensions(width, height) {
         if (!this.mainWindow || this.mainWindow.isDestroyed())
@@ -222,6 +227,83 @@ class WindowHelper {
         this.currentY = Number(this.currentY) || 0;
         this.currentY = Math.max(-halfHeight, this.currentY - this.step);
         this.mainWindow.setPosition(Math.round(this.currentX), Math.round(this.currentY));
+    }
+    // Translation overlay management methods
+    createTranslationOverlay(regionId, regionBounds) {
+        const overlayId = this.overlayHelper.createOverlay({
+            regionId,
+            displayMode: 'sidebar',
+            visible: true,
+            autoHide: false
+        });
+        // Position the overlay relative to the region
+        this.overlayHelper.repositionOverlayForRegion(overlayId, regionBounds);
+        // Track the overlay
+        this.activeOverlays.add(overlayId);
+        this.regionOverlayMap.set(regionId, overlayId);
+        return overlayId;
+    }
+    updateTranslationOverlay(regionId, translation) {
+        const overlayId = this.regionOverlayMap.get(regionId);
+        if (!overlayId)
+            return false;
+        return this.overlayHelper.updateOverlayTranslation(overlayId, translation);
+    }
+    repositionOverlayForRegion(regionId, regionBounds) {
+        const overlayId = this.regionOverlayMap.get(regionId);
+        if (!overlayId)
+            return false;
+        return this.overlayHelper.repositionOverlayForRegion(overlayId, regionBounds);
+    }
+    showTranslationOverlay(regionId) {
+        const overlayId = this.regionOverlayMap.get(regionId);
+        if (!overlayId)
+            return false;
+        return this.overlayHelper.showOverlay(overlayId);
+    }
+    hideTranslationOverlay(regionId) {
+        const overlayId = this.regionOverlayMap.get(regionId);
+        if (!overlayId)
+            return false;
+        return this.overlayHelper.hideOverlay(overlayId);
+    }
+    destroyTranslationOverlay(regionId) {
+        const overlayId = this.regionOverlayMap.get(regionId);
+        if (!overlayId)
+            return false;
+        const result = this.overlayHelper.destroyOverlay(overlayId);
+        if (result) {
+            this.activeOverlays.delete(overlayId);
+            this.regionOverlayMap.delete(regionId);
+        }
+        return result;
+    }
+    hideAllTranslationOverlays() {
+        for (const overlayId of this.activeOverlays) {
+            this.overlayHelper.hideOverlay(overlayId);
+        }
+    }
+    showAllTranslationOverlays() {
+        for (const overlayId of this.activeOverlays) {
+            this.overlayHelper.showOverlay(overlayId);
+        }
+    }
+    getOverlayHelper() {
+        return this.overlayHelper;
+    }
+    getActiveOverlays() {
+        return Array.from(this.activeOverlays);
+    }
+    cleanup() {
+        // Clean up all overlays
+        this.overlayHelper.cleanup();
+        this.activeOverlays.clear();
+        this.regionOverlayMap.clear();
+        // Close main window if it exists
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.close();
+            this.mainWindow = null;
+        }
     }
 }
 exports.WindowHelper = WindowHelper;

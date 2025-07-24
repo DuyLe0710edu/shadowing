@@ -4,6 +4,7 @@ import { WindowHelper } from "./WindowHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
+import { SimpleTranslationDemo } from "./SimpleTranslationDemo"
 
 export class AppState {
   private static instance: AppState | null = null
@@ -12,9 +13,10 @@ export class AppState {
   private screenshotHelper: ScreenshotHelper
   public shortcutsHelper: ShortcutsHelper
   public processingHelper: ProcessingHelper
+  public simpleTranslationDemo: SimpleTranslationDemo
 
   // View management
-  private view: "queue" | "solutions" = "queue"
+  private view: "queue" | "solutions" | "translation" = "queue"
 
   private problemInfo: {
     problem_statement: string
@@ -56,6 +58,9 @@ export class AppState {
 
     // Initialize ShortcutsHelper
     this.shortcutsHelper = new ShortcutsHelper(this)
+
+    // Initialize Simple Translation Demo (using existing Gemini)
+    this.simpleTranslationDemo = new SimpleTranslationDemo()
   }
 
   public static getInstance(): AppState {
@@ -70,11 +75,11 @@ export class AppState {
     return this.windowHelper.getMainWindow()
   }
 
-  public getView(): "queue" | "solutions" {
+  public getView(): "queue" | "solutions" | "translation" {
     return this.view
   }
 
-  public setView(view: "queue" | "solutions"): void {
+  public setView(view: "queue" | "solutions" | "translation"): void {
     this.view = view
     this.screenshotHelper.setView(view)
   }
@@ -183,6 +188,15 @@ export class AppState {
 
   public getHasDebugged(): boolean {
     return this.hasDebugged
+  }
+
+  // Simple translation demo methods
+  public getSimpleTranslationDemo(): SimpleTranslationDemo {
+    return this.simpleTranslationDemo
+  }
+
+  public async startAreaSelection(): Promise<void> {
+    await this.simpleTranslationDemo.startAreaSelection()
   }
 }
 

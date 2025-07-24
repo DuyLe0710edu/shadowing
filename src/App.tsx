@@ -1,8 +1,9 @@
 import { ToastProvider } from "./components/ui/toast"
 import Queue from "./_pages/Queue"
+import Solutions from "./_pages/Solutions"
+import Translation from "./_pages/Translation"
 import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
-import Solutions from "./_pages/Solutions"
 import { QueryClient, QueryClientProvider } from "react-query"
 
 declare global {
@@ -46,6 +47,26 @@ declare global {
       moveWindowLeft: () => Promise<void>
       moveWindowRight: () => Promise<void>
       quitApp: () => Promise<void>
+
+      // Translation System
+      startAreaSelection: () => Promise<void>
+      getSelectedRegions: () => Promise<Array<{
+        id: string
+        x: number
+        y: number
+        width: number
+        height: number
+        isActive: boolean
+        lastText?: string
+      }>>
+      deleteRegion: (regionId: string) => Promise<void>
+      toggleRegionMonitoring: (regionId: string) => Promise<void>
+      
+      // Translation Events
+      onTranslationReady: (callback: (data: any) => void) => () => void
+      onRegionAdded: (callback: (data: any) => void) => () => void
+      onRegionChanged: (callback: (data: any) => void) => () => void
+      onRegionDeleted?: (callback: (data: any) => void) => () => void
     }
   }
 }
@@ -60,7 +81,7 @@ const queryClient = new QueryClient({
 })
 
 const App: React.FC = () => {
-  const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
+  const [view, setView] = useState<"queue" | "solutions" | "translation">("queue")
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Effect for height monitoring
@@ -160,6 +181,8 @@ const App: React.FC = () => {
             <Queue setView={setView} />
           ) : view === "solutions" ? (
             <Solutions setView={setView} />
+          ) : view === "translation" ? (
+            <Translation setView={setView} />
           ) : (
             <></>
           )}

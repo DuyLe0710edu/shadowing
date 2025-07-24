@@ -111,6 +111,33 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
     analyzeAudioFromBase64: (data, mimeType) => electron_1.ipcRenderer.invoke("analyze-audio-base64", data, mimeType),
     analyzeAudioFile: (path) => electron_1.ipcRenderer.invoke("analyze-audio-file", path),
     analyzeImageFile: (path) => electron_1.ipcRenderer.invoke("analyze-image-file", path),
-    quitApp: () => electron_1.ipcRenderer.invoke("quit-app")
+    quitApp: () => electron_1.ipcRenderer.invoke("quit-app"),
+    // Translation system
+    startAreaSelection: () => electron_1.ipcRenderer.invoke("start-area-selection"),
+    getSelectedRegions: () => electron_1.ipcRenderer.invoke("get-selected-regions"),
+    deleteRegion: (regionId) => electron_1.ipcRenderer.invoke("delete-region", regionId),
+    toggleRegionMonitoring: (regionId) => electron_1.ipcRenderer.invoke("toggle-region-monitoring", regionId),
+    // Translation events
+    onTranslationReady: (callback) => {
+        const subscription = (_, data) => callback(data);
+        electron_1.ipcRenderer.on("translation-ready", subscription);
+        return () => {
+            electron_1.ipcRenderer.removeListener("translation-ready", subscription);
+        };
+    },
+    onRegionAdded: (callback) => {
+        const subscription = (_, data) => callback(data);
+        electron_1.ipcRenderer.on("region-added", subscription);
+        return () => {
+            electron_1.ipcRenderer.removeListener("region-added", subscription);
+        };
+    },
+    onRegionChanged: (callback) => {
+        const subscription = (_, data) => callback(data);
+        electron_1.ipcRenderer.on("region-changed", subscription);
+        return () => {
+            electron_1.ipcRenderer.removeListener("region-changed", subscription);
+        };
+    }
 });
 //# sourceMappingURL=preload.js.map

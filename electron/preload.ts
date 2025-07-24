@@ -165,5 +165,34 @@ contextBridge.exposeInMainWorld("electronAPI", {
   analyzeAudioFromBase64: (data: string, mimeType: string) => ipcRenderer.invoke("analyze-audio-base64", data, mimeType),
   analyzeAudioFile: (path: string) => ipcRenderer.invoke("analyze-audio-file", path),
   analyzeImageFile: (path: string) => ipcRenderer.invoke("analyze-image-file", path),
-  quitApp: () => ipcRenderer.invoke("quit-app")
+  quitApp: () => ipcRenderer.invoke("quit-app"),
+
+  // Translation system
+  startAreaSelection: () => ipcRenderer.invoke("start-area-selection"),
+  getSelectedRegions: () => ipcRenderer.invoke("get-selected-regions"),
+  deleteRegion: (regionId: string) => ipcRenderer.invoke("delete-region", regionId),
+  toggleRegionMonitoring: (regionId: string) => ipcRenderer.invoke("toggle-region-monitoring", regionId),
+  
+  // Translation events
+  onTranslationReady: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on("translation-ready", subscription)
+    return () => {
+      ipcRenderer.removeListener("translation-ready", subscription)
+    }
+  },
+  onRegionAdded: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on("region-added", subscription)
+    return () => {
+      ipcRenderer.removeListener("region-added", subscription)
+    }
+  },
+  onRegionChanged: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on("region-changed", subscription)
+    return () => {
+      ipcRenderer.removeListener("region-changed", subscription)
+    }
+  }
 } as ElectronAPI)

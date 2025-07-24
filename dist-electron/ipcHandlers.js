@@ -97,5 +97,18 @@ function initializeIpcHandlers(appState) {
     electron_1.ipcMain.handle("quit-app", () => {
         electron_1.app.quit();
     });
+    // Translation system handlers
+    electron_1.ipcMain.handle("start-area-selection", async () => {
+        return await appState.startAreaSelection();
+    });
+    electron_1.ipcMain.handle("get-selected-regions", async () => {
+        return appState.getSimpleTranslationDemo().getSelectedRegions();
+    });
+    electron_1.ipcMain.handle("delete-region", async (event, regionId) => {
+        return await appState.getSimpleTranslationDemo().deleteRegion(regionId);
+    });
+    electron_1.ipcMain.handle("toggle-region-monitoring", async (event, regionId) => {
+        return await appState.getSimpleTranslationDemo().toggleRegionMonitoring(regionId);
+    });
 }
 //# sourceMappingURL=ipcHandlers.js.map

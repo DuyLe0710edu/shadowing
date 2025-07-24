@@ -4,11 +4,13 @@ import { IoLogOutOutline } from "react-icons/io5"
 interface QueueCommandsProps {
   onTooltipVisibilityChange: (visible: boolean, height: number) => void
   screenshots: Array<{ path: string; preview: string }>
+  setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "translation">>
 }
 
 const QueueCommands: React.FC<QueueCommandsProps> = ({
   onTooltipVisibilityChange,
-  screenshots
+  screenshots,
+  setView
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -125,8 +127,19 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
             {isRecording ? (
               <span className="animate-pulse">● Stop Recording</span>
             ) : (
-              <span>🎤 Record Voice</span>
+              <span>Record </span>
             )}
+          </button>
+        </div>
+
+        {/* Live Translation Button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView('translation')}
+            className="bg-white/10 hover:bg-white/20 transition-colors rounded-md px-2 py-1 text-[11px] leading-none text-white/70 flex items-center gap-1"
+            type="button"
+          >
+            <span>Live Translation</span>
           </button>
         </div>
 

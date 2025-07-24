@@ -2,6 +2,7 @@
 import { BrowserWindow, screen } from "electron"
 import { AppState } from "main"
 import path from "node:path"
+import { OverlayWindowHelper } from "./OverlayWindowHelper"
 
 const isDev = process.env.NODE_ENV === "development"
 
@@ -15,6 +16,7 @@ export class WindowHelper {
   private windowPosition: { x: number; y: number } | null = null
   private windowSize: { width: number; height: number } | null = null
   private appState: AppState
+  private overlayHelper: OverlayWindowHelper
 
   // Initialize with explicit number type and 0 value
   private screenWidth: number = 0
@@ -23,8 +25,13 @@ export class WindowHelper {
   private currentX: number = 0
   private currentY: number = 0
 
+  // Translation overlay management
+  private activeOverlays: Set<string> = new Set()
+  private regionOverlayMap: Map<string, string> = new Map()
+
   constructor(appState: AppState) {
     this.appState = appState
+    this.overlayHelper = new OverlayWindowHelper()
   }
 
   public setWindowDimensions(width: number, height: number): void {
@@ -280,5 +287,98 @@ export class WindowHelper {
       Math.round(this.currentX),
       Math.round(this.currentY)
     )
+  }
+
+  // Translation overlay management methods
+  public createTranslationOverlay(regionId: string, regionBounds: { x: number, y: number, width: number, height: number }): string {
+    const overlayId = this.overlayHelper.createOverlay({
+      regionId,
+      displayMode: 'sidebar',
+      visible: true,
+      autoHide: false
+    })
+
+    // Position the overlay relative to the region
+    this.overlayHelper.repositionOverlayForRegion(overlayId, regionBounds)
+
+    // Track the overlay
+    this.activeOverlays.add(overlayId)
+    this.regionOverlayMap.set(regionId, overlayId)
+
+    return overlayId
+  }
+
+  public updateTranslationOverlay(regionId: string, translation: any): boolean {
+    const overlayId = this.regionOverlayMap.get(regionId)
+    if (!overlayId) return false
+
+    return this.overlayHelper.updateOverlayTranslation(overlayId, translation)
+  }
+
+  public repositionOverlayForRegion(regionId: string, regionBounds: { x: number, y: number, width: number, height: number }): boolean {
+    const overlayId = this.regionOverlayMap.get(regionId)
+    if (!overlayId) return false
+
+    return this.overlayHelper.repositionOverlayForRegion(overlayId, regionBounds)
+  }
+
+  public showTranslationOverlay(regionId: string): boolean {
+    const overlayId = this.regionOverlayMap.get(regionId)
+    if (!overlayId) return false
+
+    return this.overlayHelper.showOverlay(overlayId)
+  }
+
+  public hideTranslationOverlay(regionId: string): boolean {
+    const overlayId = this.regionOverlayMap.get(regionId)
+    if (!overlayId) return false
+
+    return this.overlayHelper.hideOverlay(overlayId)
+  }
+
+  public destroyTranslationOverlay(regionId: string): boolean {
+    const overlayId = this.regionOverlayMap.get(regionId)
+    if (!overlayId) return false
+
+    const result = this.overlayHelper.destroyOverlay(overlayId)
+    if (result) {
+      this.activeOverlays.delete(overlayId)
+      this.regionOverlayMap.delete(regionId)
+    }
+
+    return result
+  }
+
+  public hideAllTranslationOverlays(): void {
+    for (const overlayId of this.activeOverlays) {
+      this.overlayHelper.hideOverlay(overlayId)
+    }
+  }
+
+  public showAllTranslationOverlays(): void {
+    for (const overlayId of this.activeOverlays) {
+      this.overlayHelper.showOverlay(overlayId)
+    }
+  }
+
+  public getOverlayHelper(): OverlayWindowHelper {
+    return this.overlayHelper
+  }
+
+  public getActiveOverlays(): string[] {
+    return Array.from(this.activeOverlays)
+  }
+
+  public cleanup(): void {
+    // Clean up all overlays
+    this.overlayHelper.cleanup()
+    this.activeOverlays.clear()
+    this.regionOverlayMap.clear()
+
+    // Close main window if it exists
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.close()
+      this.mainWindow = null
+    }
   }
 }
