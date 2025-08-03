@@ -4,7 +4,8 @@ import { WindowHelper } from "./WindowHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
-import { SimpleTranslationDemo } from "./SimpleTranslationDemo"
+import { M2MTranslationManager } from "./M2MTranslationManager"
+import { OCRServiceManager } from "./OCRServiceManager"
 
 export class AppState {
   private static instance: AppState | null = null
@@ -13,7 +14,8 @@ export class AppState {
   private screenshotHelper: ScreenshotHelper
   public shortcutsHelper: ShortcutsHelper
   public processingHelper: ProcessingHelper
-  public simpleTranslationDemo: SimpleTranslationDemo
+  public m2mTranslationManager: M2MTranslationManager
+  private ocrServiceManager: OCRServiceManager
 
   // View management
   private view: "queue" | "solutions" | "translation" = "queue"
@@ -59,8 +61,11 @@ export class AppState {
     // Initialize ShortcutsHelper
     this.shortcutsHelper = new ShortcutsHelper(this)
 
-    // Initialize Simple Translation Demo (using existing Gemini)
-    this.simpleTranslationDemo = new SimpleTranslationDemo()
+    // Initialize OCR Service Manager
+    this.ocrServiceManager = new OCRServiceManager()
+
+    // Initialize M2M Translation Manager (fast local translation)
+    this.m2mTranslationManager = new M2MTranslationManager(this.ocrServiceManager)
   }
 
   public static getInstance(): AppState {
@@ -191,12 +196,20 @@ export class AppState {
   }
 
   // Simple translation demo methods
-  public getSimpleTranslationDemo(): SimpleTranslationDemo {
-    return this.simpleTranslationDemo
+  public getM2MTranslationManager(): M2MTranslationManager {
+    return this.m2mTranslationManager
   }
 
   public async startAreaSelection(): Promise<void> {
-    await this.simpleTranslationDemo.startAreaSelection()
+    await this.m2mTranslationManager.startAreaSelection()
+  }
+
+  public async initializeServices(): Promise<void> {
+    await this.ocrServiceManager.start()
+  }
+
+  public stopServices(): void {
+    this.ocrServiceManager.stop()
   }
 }
 
@@ -207,8 +220,17 @@ async function initializeApp() {
   // Initialize IPC handlers before window creation
   initializeIpcHandlers(appState)
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     console.log("App is ready")
+    
+    try {
+      // Initialize OCR service first
+      await appState.initializeServices()
+      console.log("Services initialized")
+    } catch (error) {
+      console.error("Failed to initialize services:", error)
+    }
+    
     appState.createWindow()
     // Register global shortcuts using ShortcutsHelper
     appState.shortcutsHelper.registerGlobalShortcuts()
@@ -224,8 +246,13 @@ async function initializeApp() {
   // Quit when all windows are closed, except on macOS
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
+      appState.stopServices()
       app.quit()
     }
+  })
+
+  app.on("before-quit", () => {
+    appState.stopServices()
   })
 
   app.dock?.hide() // Hide dock icon (optional)

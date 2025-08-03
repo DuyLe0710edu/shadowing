@@ -216,10 +216,10 @@ async checkRegionForChanges(region) {
 |--------|---------------------------|---------------|
 | **Latency** | 1000-3000ms | 150-200ms |
 | **Cost** | $0.01+ per translation | Free after setup |
-| **Offline** | ❌ Requires internet | ✅ Fully offline |
-| **Rate Limits** | ❌ API throttling | ✅ No limits |
-| **Privacy** | ❌ Data sent to cloud | ✅ Local processing |
-| **Reliability** | ❌ Network dependent | ✅ Always available |
+| **Offline** |  Requires internet |  Fully offline |
+| **Rate Limits** |  API throttling |  No limits |
+| **Privacy** |  Data sent to cloud |  Local processing |
+| **Reliability** |  Network dependent |  Always available |
 
 ## 🔮 Future Enhancements
 

@@ -26,7 +26,20 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     translation: string
     timestamp: number
   }>>([])
+  const [targetLanguage, setTargetLanguage] = useState<string>('en')
+  const [sourceLanguage, setSourceLanguage] = useState<string>('auto')
   const contentRef = useRef<HTMLDivElement>(null)
+
+  const languages = [
+    { code: 'auto', name: 'Auto-detect' },
+    { code: 'en', name: 'English' },
+    { code: 'zh', name: '中文 (Chinese)' },
+    { code: 'ja', name: '日本語 (Japanese)' }, 
+    { code: 'ko', name: '한국어 (Korean)' },
+    { code: 'es', name: 'Español (Spanish)' },
+    { code: 'fr', name: 'Français (French)' },
+    { code: 'de', name: 'Deutsch (German)' },
+  ]
 
   const handleSelectArea = async () => {
     try {
@@ -164,7 +177,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
 
       {/* Controls */}
       <div className="bg-black/60 backdrop-blur-md rounded-lg p-3 mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-3">
           <button
             onClick={handleSelectArea}
             disabled={isSelecting}
@@ -192,7 +205,42 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
           </button>
           
           <div className="text-[10px] text-white/50 ml-2">
-            Select screen area for subtitle monitoring
+            M2M-100 Local Translation • Sub-200ms
+          </div>
+        </div>
+        
+        {/* Language Selection */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/60">From:</span>
+            <select
+              value={sourceLanguage}
+              onChange={(e) => setSourceLanguage(e.target.value)}
+              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
+            >
+              {languages.map(lang => (
+                <option key={lang.code} value={lang.code} className="bg-black text-white">
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <span className="text-white/60 text-[10px]">→</span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/60">To:</span>
+            <select
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
+            >
+              {languages.filter(lang => lang.code !== 'auto').map(lang => (
+                <option key={lang.code} value={lang.code} className="bg-black text-white">
+                  {lang.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

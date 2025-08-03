@@ -3,7 +3,7 @@
 ## 🐛 Bug Identified
 The Tesseract.js OCR configuration in `FastTranslationHelper.ts` had incorrect parameter usage that would cause runtime errors.
 
-## ❌ Issues Found
+##  Issues Found
 
 ### 1. Character Whitelist Problem
 **Issue**: The character whitelist included literal Japanese characters that would cause parsing errors
@@ -19,7 +19,7 @@ tessedit_char_whitelist: '...ひらがなカタカナ漢字한글'
 - `textord_tablefind_good_width: '3'` - Table detection parameter irrelevant for subtitles
 - `wordrec_enable_assoc: '1'` - Word recognition parameter that may cause issues
 
-## ✅ Fix Applied
+##  Fix Applied
 
 ### Corrected OCR Parameters
 ```typescript
@@ -64,7 +64,7 @@ Instead of including literal CJK characters in the whitelist (which can cause en
 2. **ASCII whitelist only**: Basic alphanumeric + common punctuation
 3. **Let language models handle**: Chinese/Japanese/Korean character recognition
 
-## ✅ Result:
+##  Result:
 - **No more parameter errors** during OCR initialization
 - **Faster, more reliable** subtitle text recognition
 - **Better character support** through proper language pack usage

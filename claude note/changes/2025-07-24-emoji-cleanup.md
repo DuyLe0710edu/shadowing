@@ -12,8 +12,8 @@ Removed all decorative emojis from actual code files to maintain clean, professi
 **Before:**
 ```typescript
 console.log("🚀 Initializing Fast Translation System...")
-console.log(`✅ Fast Translation System initialized in ${time}ms`)
-console.error("❌ Failed to initialize Fast Translation System:", error)
+console.log(` Fast Translation System initialized in ${time}ms`)
+console.error(" Failed to initialize Fast Translation System:", error)
 console.log("📦 Loading M2M-100 model (418M)...")
 console.log("🧹 Fast Translation System cleaned up")
 ```
@@ -29,8 +29,8 @@ console.log("Fast Translation System cleaned up")
 
 **Emojis Removed:**
 - 🚀 (rocket) - initialization messages
-- ✅ (checkmark) - success messages  
-- ❌ (X mark) - error messages
+-  (checkmark) - success messages  
+-  (X mark) - error messages
 - 📦 (package) - loading messages
 - 📝 (memo) - configuration messages
 - ⚠️ (warning) - warning messages

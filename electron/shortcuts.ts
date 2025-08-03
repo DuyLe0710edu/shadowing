@@ -92,7 +92,8 @@ export class ShortcutsHelper {
 
     // Unregister shortcuts when quitting
     app.on("will-quit", () => {
-      globalShortcut.unregisterAll()
+      globalShortcut.unregisterAll()     
     })
   }
+
 }

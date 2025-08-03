@@ -7,14 +7,16 @@ const WindowHelper_1 = require("./WindowHelper");
 const ScreenshotHelper_1 = require("./ScreenshotHelper");
 const shortcuts_1 = require("./shortcuts");
 const ProcessingHelper_1 = require("./ProcessingHelper");
-const SimpleTranslationDemo_1 = require("./SimpleTranslationDemo");
+const M2MTranslationManager_1 = require("./M2MTranslationManager");
+const OCRServiceManager_1 = require("./OCRServiceManager");
 class AppState {
     static instance = null;
     windowHelper;
     screenshotHelper;
     shortcutsHelper;
     processingHelper;
-    simpleTranslationDemo;
+    m2mTranslationManager;
+    ocrServiceManager;
     // View management
     view = "queue";
     problemInfo = null; // Allow null
@@ -43,8 +45,10 @@ class AppState {
         this.processingHelper = new ProcessingHelper_1.ProcessingHelper(this);
         // Initialize ShortcutsHelper
         this.shortcutsHelper = new shortcuts_1.ShortcutsHelper(this);
-        // Initialize Simple Translation Demo (using existing Gemini)
-        this.simpleTranslationDemo = new SimpleTranslationDemo_1.SimpleTranslationDemo();
+        // Initialize OCR Service Manager
+        this.ocrServiceManager = new OCRServiceManager_1.OCRServiceManager();
+        // Initialize M2M Translation Manager (fast local translation)
+        this.m2mTranslationManager = new M2MTranslationManager_1.M2MTranslationManager(this.ocrServiceManager);
     }
     static getInstance() {
         if (!AppState.instance) {
@@ -138,11 +142,17 @@ class AppState {
         return this.hasDebugged;
     }
     // Simple translation demo methods
-    getSimpleTranslationDemo() {
-        return this.simpleTranslationDemo;
+    getM2MTranslationManager() {
+        return this.m2mTranslationManager;
     }
     async startAreaSelection() {
-        await this.simpleTranslationDemo.startAreaSelection();
+        await this.m2mTranslationManager.startAreaSelection();
+    }
+    async initializeServices() {
+        await this.ocrServiceManager.start();
+    }
+    stopServices() {
+        this.ocrServiceManager.stop();
     }
 }
 exports.AppState = AppState;
@@ -151,8 +161,16 @@ async function initializeApp() {
     const appState = AppState.getInstance();
     // Initialize IPC handlers before window creation
     (0, ipcHandlers_1.initializeIpcHandlers)(appState);
-    electron_1.app.whenReady().then(() => {
+    electron_1.app.whenReady().then(async () => {
         console.log("App is ready");
+        try {
+            // Initialize OCR service first
+            await appState.initializeServices();
+            console.log("Services initialized");
+        }
+        catch (error) {
+            console.error("Failed to initialize services:", error);
+        }
         appState.createWindow();
         // Register global shortcuts using ShortcutsHelper
         appState.shortcutsHelper.registerGlobalShortcuts();
@@ -166,8 +184,12 @@ async function initializeApp() {
     // Quit when all windows are closed, except on macOS
     electron_1.app.on("window-all-closed", () => {
         if (process.platform !== "darwin") {
+            appState.stopServices();
             electron_1.app.quit();
         }
+    });
+    electron_1.app.on("before-quit", () => {
+        appState.stopServices();
     });
     electron_1.app.dock?.hide(); // Hide dock icon (optional)
     electron_1.app.commandLine.appendSwitch("disable-background-timer-throttling");

@@ -102,13 +102,13 @@ function initializeIpcHandlers(appState) {
         return await appState.startAreaSelection();
     });
     electron_1.ipcMain.handle("get-selected-regions", async () => {
-        return appState.getSimpleTranslationDemo().getSelectedRegions();
+        return appState.getM2MTranslationManager().getSelectedRegions();
     });
     electron_1.ipcMain.handle("delete-region", async (event, regionId) => {
-        return await appState.getSimpleTranslationDemo().deleteRegion(regionId);
+        return await appState.getM2MTranslationManager().deleteRegion(regionId);
     });
     electron_1.ipcMain.handle("toggle-region-monitoring", async (event, regionId) => {
-        return await appState.getSimpleTranslationDemo().toggleRegionMonitoring(regionId);
+        return await appState.getM2MTranslationManager().toggleRegionMonitoring(regionId);
     });
 }
 //# sourceMappingURL=ipcHandlers.js.map

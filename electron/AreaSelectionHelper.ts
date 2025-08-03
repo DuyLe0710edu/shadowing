@@ -6,6 +6,7 @@ import fs from "node:fs"
 import { app } from "electron"
 import screenshot from "screenshot-desktop"
 import sharp from "sharp"
+import { OCRServiceManager } from "./OCRServiceManager"
 
 export interface SelectedRegion {
   id: string
@@ -32,12 +33,14 @@ export class AreaSelectionHelper {
   private monitoringInterval: NodeJS.Timeout | null = null
   private readonly MONITOR_INTERVAL = 1000 // Check every second
   private readonly regionsDir: string
+  private ocrServiceManager: OCRServiceManager
 
-  constructor() {
+  constructor(ocrServiceManager: OCRServiceManager) {
     this.regionsDir = path.join(app.getPath("userData"), "selected_regions")
     if (!fs.existsSync(this.regionsDir)) {
       fs.mkdirSync(this.regionsDir, { recursive: true })
     }
+    this.ocrServiceManager = ocrServiceManager
   }
 
   public async startAreaSelection(): Promise<void> {
@@ -166,8 +169,13 @@ export class AreaSelectionHelper {
         height: region.height
       })
 
-      // Take screenshot of entire screen first
-      const fullScreenshot = await screenshot({ screen: display.id })
+      // Take screenshot of the entire virtual screen. On macOS the numeric
+      // screen index expected by the `screenshot-desktop` CLI does not match
+      // Electron's `display.id`, which caused the “No displays detected”
+      // error.  Falling back to a generic capture is safer and works even
+      // on single-monitor setups.
+
+      const fullScreenshot = await screenshot()  // PNG buffer
       
       // Crop to the selected region using Sharp
       const croppedImage = await sharp(fullScreenshot)
@@ -189,25 +197,21 @@ export class AreaSelectionHelper {
 
   public startMonitoring(): void {
     if (this.monitoringInterval) {
-      console.log(`Monitoring already running, clearing previous interval`)
       clearInterval(this.monitoringInterval)
     }
 
-    console.log(`Starting monitoring with ${this.MONITOR_INTERVAL}ms interval`)
+    console.log(`[MONITOR] Started (${this.selectedRegions.size} regions)`)
     
     this.monitoringInterval = setInterval(async () => {
-      console.log(`Monitoring tick - checking active regions...`)
-      let activeCount = 0
-      
       for (const [regionId, region] of this.selectedRegions) {
         if (region.isActive) {
-          activeCount++
-          console.log(`Checking region ${regionId} for changes...`)
-          await this.checkRegionForChanges(region)
+          try {
+            await this.checkRegionForChanges(region)
+          } catch (error) {
+            console.error(`[MONITOR] Region ${regionId.substring(0, 8)} error:`, error.message)
+          }
         }
       }
-      
-      console.log(`Checked ${activeCount} active regions`)
     }, this.MONITOR_INTERVAL)
   }
 
@@ -223,25 +227,41 @@ export class AreaSelectionHelper {
       const screenshot = await this.captureRegionScreenshot(region)
       if (!screenshot) return
 
-      // Generate a hash of the image to detect changes
-      const imageHash = await this.generateImageHash(screenshot)
-      
-      if (region.lastTextHash && region.lastTextHash === imageHash) {
-        // No change detected
-        return
-      }
-
-      // Update the hash
-      region.lastTextHash = imageHash
-
-      // Save the screenshot for OCR processing
       const filepath = await this.saveRegionScreenshot(region, screenshot)
-      if (filepath) {
-        // Notify that this region has changed and needs translation
+      if (!filepath) return
+
+      // Extract text using EasyOCR
+      const extractedText = await this.extractTextFromImage(filepath)
+      
+      // Compare with previous text
+      if (region.lastText === extractedText) return
+
+      // Update region with new text
+      region.lastText = extractedText
+
+      // Only proceed if we have meaningful text
+      if (extractedText && extractedText.trim().length > 2) {
         this.notifyRegionChange("region-changed", region, filepath)
       }
     } catch (error) {
-      console.error("Error checking region for changes:", error)
+      console.error(`[REGION] Error:`, error.message)
+    }
+  }
+
+  private async extractTextFromImage(imagePath: string): Promise<string> {
+    try {
+      const result = await this.ocrServiceManager.extractText(imagePath)
+      
+      if (result.confidence < 70) {
+        console.log(`[OCR] Low confidence (${result.confidence}%)`)
+        return ''
+      }
+      
+      console.log(`[OCR] "${result.text}" (${result.confidence}%)`)
+      return result.text.trim()
+    } catch (error) {
+      console.error(`[OCR] Failed:`, error.message)
+      return ''
     }
   }
 

@@ -113,14 +113,14 @@ export function initializeIpcHandlers(appState: AppState): void {
   })
 
   ipcMain.handle("get-selected-regions", async () => {
-    return appState.getSimpleTranslationDemo().getSelectedRegions()
+    return appState.getM2MTranslationManager().getSelectedRegions()
   })
 
   ipcMain.handle("delete-region", async (event, regionId: string) => {
-    return await appState.getSimpleTranslationDemo().deleteRegion(regionId)
+    return await appState.getM2MTranslationManager().deleteRegion(regionId)
   })
 
   ipcMain.handle("toggle-region-monitoring", async (event, regionId: string) => {
-    return await appState.getSimpleTranslationDemo().toggleRegionMonitoring(regionId)
+    return await appState.getM2MTranslationManager().toggleRegionMonitoring(regionId)
   })
 }
