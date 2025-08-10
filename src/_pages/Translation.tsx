@@ -5,6 +5,13 @@ interface TranslationProps {
   setView: React.Dispatch<React.SetStateAction<"queue" | "solutions" | "translation">>
 }
 
+interface RawLine {
+  id: string
+  regionId: string
+  text: string
+  ts: number
+}
+
 interface SelectedRegion {
   id: string
   x: number
@@ -19,6 +26,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
   const [selectedRegions, setSelectedRegions] = useState<SelectedRegion[]>([])
   const [isSelecting, setIsSelecting] = useState(false)
   const [translations, setTranslations] = useState<Map<string, string>>(new Map())
+  const [rawFeed, setRawFeed] = useState<RawLine[]>([])
   const [translationHistory, setTranslationHistory] = useState<Array<{
     id: string
     regionId: string
@@ -28,18 +36,26 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
   }>>([])
   const [targetLanguage, setTargetLanguage] = useState<string>('en')
   const [sourceLanguage, setSourceLanguage] = useState<string>('auto')
+  const [settingsLoaded, setSettingsLoaded] = useState<boolean>(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const rawListRef = useRef<HTMLDivElement>(null)
+  const historyListRef = useRef<HTMLDivElement>(null)
 
   const languages = [
-    { code: 'auto', name: 'Auto-detect' },
-    { code: 'en', name: 'English' },
-    { code: 'zh', name: '中文 (Chinese)' },
-    { code: 'ja', name: '日本語 (Japanese)' }, 
-    { code: 'ko', name: '한국어 (Korean)' },
-    { code: 'es', name: 'Español (Spanish)' },
-    { code: 'fr', name: 'Français (French)' },
-    { code: 'de', name: 'Deutsch (German)' },
+    { code: 'auto', name: 'Auto-detect', flag: '🌐' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'zh', name: '中文 (Chinese)', flag: '🇨🇳' },
+    { code: 'ja', name: '日本語 (Japanese)', flag: '🇯🇵' }, 
+    { code: 'ko', name: '한국어 (Korean)', flag: '🇰🇷' },
+    { code: 'es', name: 'Español (Spanish)', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français (French)', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch (German)', flag: '🇩🇪' },
   ]
+  
+  const getLanguageDisplay = (code: string) => {
+    const lang = languages.find(l => l.code === code)
+    return lang ? `${lang.flag} ${code.toUpperCase()}` : code.toUpperCase()
+  }
 
   const handleSelectArea = async () => {
     try {
@@ -82,7 +98,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     }
   }
 
-  // Load selected regions on component mount
+  // Load selected regions and language settings on component mount
   useEffect(() => {
     const loadRegions = async () => {
       try {
@@ -92,12 +108,39 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         console.error("Failed to load regions:", error)
       }
     }
+    
+    const loadLanguageSettings = async () => {
+      try {
+        // Try to get persisted language settings
+        const settings = await (window.electronAPI as any).getLanguageSettings?.()
+        if (settings) {
+          console.log('[UI] Loaded persisted language settings:', settings)
+          setSourceLanguage(settings.source)
+          setTargetLanguage(settings.target)
+        }
+        setSettingsLoaded(true) // Mark as loaded regardless of success/failure
+      } catch (error) {
+        console.error("Failed to load language settings:", error)
+        setSettingsLoaded(true) // Still mark as loaded to allow saving user changes
+      }
+    }
+    
     loadRegions()
+    loadLanguageSettings()
   }, [])
 
   // Listen for region changes and translation updates
   useEffect(() => {
     const cleanupFunctions = [
+      // Listen for language settings requests from main process
+      (window.electronAPI as any).onLanguageSettingsRequest?.(() => {
+        // Send current language settings back to main process
+        console.log('[UI] Responding to language settings request:', { source: sourceLanguage, target: targetLanguage })
+        ;(window.electronAPI as any).sendLanguageSettingsResponse?.({
+          source: sourceLanguage,
+          target: targetLanguage
+        })
+      }),
       // Listen for translation results
       window.electronAPI.onTranslationReady((data: { 
         regionId: string, 
@@ -128,22 +171,40 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
           timestamp: data.timestamp
         }, ...prev.slice(0, 49)]) // Keep last 50 translations
         
+        // Auto-scroll to top of translation history list
+        setTimeout(() => historyListRef.current && (historyListRef.current.scrollTop = 0), 0)
+        
         // Notification removed as requested
       }),
       
       // Listen for new regions being added
       window.electronAPI.onRegionAdded((data: { region: SelectedRegion }) => {
         setSelectedRegions(prev => [...prev, data.region])
+        // Ensure user lands on the live page immediately
+        setView('translation')
       }),
       
       // Listen for region changes (new text detected)
-      window.electronAPI.onRegionChanged((data: { region: SelectedRegion, translation: string }) => {
-        setSelectedRegions(prev => 
-          prev.map(region => 
-            region.id === data.region.id ? data.region : region
-          )
-        )
-        setTranslations(prev => new Map(prev.set(data.region.id, data.translation)))
+      window.electronAPI.onRegionChanged((data: { region: SelectedRegion }) => {
+        setSelectedRegions(prev => {
+          const idx = prev.findIndex(r => r.id === data.region.id)
+          if (idx === -1) return prev
+          const next = [...prev]
+          next[idx] = { ...data.region }
+          return next
+        })
+        // Update raw feed (deduplicate per region)
+        setRawFeed(prev => {
+          const last = prev.find(p => p.regionId === data.region.id)
+          if (last && last.text === data.region.lastText) return prev
+          const updated = [
+            { id: `${data.region.id}_${Date.now()}`, regionId: data.region.id, text: data.region.lastText || '', ts: Date.now() },
+            ...prev.filter(p => Date.now() - p.ts < 5000)
+          ]
+          // Auto-scroll raw feed container to top on prepend
+          setTimeout(() => rawListRef.current && (rawListRef.current.scrollTop = 0), 0)
+          return updated
+        })
       }),
       
       // Listen for region deletions
@@ -160,6 +221,48 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     return () => {
       cleanupFunctions.forEach(cleanup => cleanup?.())
     }
+  }, [sourceLanguage, targetLanguage]) // Re-register when language settings change
+
+  // Save language settings when they change (but only after initial load)
+  useEffect(() => {
+    const saveLanguageSettings = async () => {
+      try {
+        await (window.electronAPI as any).setLanguageSettings?.({ 
+          source: sourceLanguage, 
+          target: targetLanguage 
+        })
+        console.log('[UI] Saved language settings:', { source: sourceLanguage, target: targetLanguage })
+      } catch (error) {
+        console.error("Failed to save language settings:", error)
+      }
+    }
+    
+    // Only save after settings have been loaded to avoid overwriting with initial values
+    if (settingsLoaded && sourceLanguage && targetLanguage) {
+      saveLanguageSettings()
+    }
+  }, [sourceLanguage, targetLanguage, settingsLoaded])
+
+  // Save settings when component unmounts (when switching views)
+  useEffect(() => {
+    return () => {
+      // Save on component unmount
+      if (settingsLoaded && sourceLanguage && targetLanguage) {
+        (window.electronAPI as any).setLanguageSettings?.({ 
+          source: sourceLanguage, 
+          target: targetLanguage 
+        })
+        console.log('[UI] Saving settings on unmount:', { source: sourceLanguage, target: targetLanguage })
+      }
+    }
+  }, [sourceLanguage, targetLanguage, settingsLoaded])
+
+  // Purge rawFeed entries older than 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRawFeed(prev => prev.filter(item => Date.now() - item.ts < 5000))
+    }, 1000)
+    return () => clearInterval(timer)
   }, [])
 
   return (
@@ -204,44 +307,6 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
             Solutions
           </button>
           
-          <div className="text-[10px] text-white/50 ml-2">
-            M2M-100 Local Translation • Sub-200ms
-          </div>
-        </div>
-        
-        {/* Language Selection */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-white/60">From:</span>
-            <select
-              value={sourceLanguage}
-              onChange={(e) => setSourceLanguage(e.target.value)}
-              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
-            >
-              {languages.map(lang => (
-                <option key={lang.code} value={lang.code} className="bg-black text-white">
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <span className="text-white/60 text-[10px]">→</span>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-white/60">To:</span>
-            <select
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
-            >
-              {languages.filter(lang => lang.code !== 'auto').map(lang => (
-                <option key={lang.code} value={lang.code} className="bg-black text-white">
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
@@ -287,16 +352,9 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
                 </div>
                 
                 {region.lastText && (
-                  <div className="bg-black/60 rounded p-2 mb-2">
+                  <div className="bg-black/60 rounded p-2">
                     <div className="text-xs text-white/60 mb-1">Original Text:</div>
                     <div className="text-sm text-white">{region.lastText}</div>
-                  </div>
-                )}
-                
-                {translations.has(region.id) && (
-                  <div className="bg-blue-900/30 rounded p-2">
-                    <div className="text-xs text-blue-300 mb-1">Translation:</div>
-                    <div className="text-sm text-blue-100">{translations.get(region.id)}</div>
                   </div>
                 )}
               </div>
@@ -309,25 +367,74 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
       <div className="bg-black/60 backdrop-blur-md rounded-lg p-4 mb-4">
         <h2 className="text-md font-medium text-white mb-3">Translation History</h2>
         
+        {/* Language Selection */}
+        <div className="flex flex-wrap items-center gap-3 mb-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/60">From:</span>
+            <select
+              value={sourceLanguage}
+              onChange={(e) => setSourceLanguage(e.target.value)}
+              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
+            >
+              {languages.map(lang => (
+                <option key={lang.code} value={lang.code} className="bg-black text-white">
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <span className="text-white/60 text-[10px]">→</span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/60">To:</span>
+            <select
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              className="bg-white/10 hover:bg-white/20 text-white text-[11px] px-2 py-1 rounded-md border-none outline-none"
+            >
+              {languages.filter(lang => lang.code !== 'auto').map(lang => (
+                <option key={lang.code} value={lang.code} className="bg-black text-white">
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+        </div>
+        {/* Live raw subtitle feed (last 5 s) */}
+        {rawFeed.length > 0 && (
+          <div className="space-y-1 mb-3 max-h-20 overflow-hidden" ref={rawListRef}>
+            {rawFeed.map(line => (
+              <div key={line.id} className="text-white/70 text-xs truncate">
+                {line.text}
+              </div>
+            ))}
+          </div>
+        )}
+        
         {translationHistory.length === 0 ? (
           <div className="text-center py-4 text-white/50">
             <p>No translations yet</p>
             <p className="text-xs mt-1">Start monitoring regions to see translation history</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2 max-h-64 overflow-y-auto" ref={historyListRef}>
             {translationHistory.map((item) => (
               <div key={item.id} className="bg-black/40 rounded p-3 border-l-2 border-green-500/30">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <div className="text-xs text-white/60">
                     Region {item.regionId.substring(0, 8)} • {new Date(item.timestamp).toLocaleTimeString()}
                   </div>
+                  <div className="text-xs bg-white/10 rounded px-2 py-1">
+                    {getLanguageDisplay(sourceLanguage)}→{getLanguageDisplay(targetLanguage)}
+                  </div>
                 </div>
-                <div className="text-xs text-white/70 mb-1">
+                <div className="text-xs text-white/70 mb-2">
                   <span className="font-medium">Original:</span> {item.originalText}
                 </div>
-                <div className="text-xs text-green-300">
-                  <span className="font-medium">Translation:</span> {item.translation}
+                <div className="text-sm text-green-300 font-medium">
+                  {item.translation}
                 </div>
               </div>
             ))}

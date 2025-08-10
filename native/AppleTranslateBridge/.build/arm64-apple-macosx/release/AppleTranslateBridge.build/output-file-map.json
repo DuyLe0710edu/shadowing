@@ -1,0 +1,12 @@
+{
+  "": {
+    "dependencies": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/AppleTranslateBridge.d",
+    "object": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/AppleTranslateBridge.o",
+    "swift-dependencies": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/master.swiftdeps"
+  },
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/main.swift": {
+    "object": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swift.o",
+    "swiftmodule": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swiftdeps"
+  }
+}

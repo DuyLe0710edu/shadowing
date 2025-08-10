@@ -1,8 +1,13 @@
 "use strict";
 // ipcHandlers.ts
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initializeIpcHandlers = initializeIpcHandlers;
 const electron_1 = require("electron");
+const node_fs_1 = __importDefault(require("node:fs"));
+const node_path_1 = __importDefault(require("node:path"));
 function initializeIpcHandlers(appState) {
     electron_1.ipcMain.handle("update-content-dimensions", async (event, { width, height }) => {
         if (width && height) {
@@ -102,13 +107,56 @@ function initializeIpcHandlers(appState) {
         return await appState.startAreaSelection();
     });
     electron_1.ipcMain.handle("get-selected-regions", async () => {
-        return appState.getM2MTranslationManager().getSelectedRegions();
+        return appState.getTranslationManager().getSelectedRegions();
     });
     electron_1.ipcMain.handle("delete-region", async (event, regionId) => {
-        return await appState.getM2MTranslationManager().deleteRegion(regionId);
+        return await appState.getTranslationManager().deleteRegion(regionId);
     });
     electron_1.ipcMain.handle("toggle-region-monitoring", async (event, regionId) => {
-        return await appState.getM2MTranslationManager().toggleRegionMonitoring(regionId);
+        return await appState.getTranslationManager().toggleRegionMonitoring(regionId);
+    });
+    // Language settings handlers
+    const getSettingsFilePath = () => node_path_1.default.join(electron_1.app.getPath("userData"), "settings.json");
+    const loadPersistedSettings = () => {
+        try {
+            const settingsFile = getSettingsFilePath();
+            if (node_fs_1.default.existsSync(settingsFile)) {
+                const settings = JSON.parse(node_fs_1.default.readFileSync(settingsFile, 'utf8'));
+                console.log('[SETTINGS] Loaded persisted language settings:', settings);
+                return settings;
+            }
+        }
+        catch (error) {
+            console.warn('[SETTINGS] Failed to load persisted settings:', error.message);
+        }
+        return { source: 'auto', target: 'en' };
+    };
+    const saveSettings = (settings) => {
+        try {
+            const settingsFile = getSettingsFilePath();
+            node_fs_1.default.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8');
+            console.log('[SETTINGS] Saved language settings:', settings);
+        }
+        catch (error) {
+            console.warn('[SETTINGS] Failed to save settings:', error.message);
+        }
+    };
+    let currentLanguageSettings = loadPersistedSettings();
+    electron_1.ipcMain.handle("set-language-settings", async (event, settings) => {
+        currentLanguageSettings = settings;
+        saveSettings(settings); // Persist to disk
+        console.log('Language settings updated:', settings);
+        return true;
+    });
+    electron_1.ipcMain.handle("get-language-settings", async () => {
+        return currentLanguageSettings;
+    });
+    // Language settings communication handlers for TranslationManager
+    electron_1.ipcMain.on("language-settings-response", (event, settings) => {
+        // Update stored settings when received from renderer
+        currentLanguageSettings = settings;
+        saveSettings(settings); // Persist to disk
+        console.log('Language settings received from renderer:', settings);
     });
 }
 //# sourceMappingURL=ipcHandlers.js.map

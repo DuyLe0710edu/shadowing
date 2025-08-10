@@ -2,6 +2,24 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PROCESSING_EVENTS = void 0;
 const electron_1 = require("electron");
+// Pending event buffers to avoid losing early IPC before renderer subscribes
+const pendingTranslationReady = [];
+const pendingRegionChanged = [];
+let translationReadyHandler = null;
+let regionChangedHandler = null;
+// Early listeners fill buffers; real callbacks get set via exposed API below
+electron_1.ipcRenderer.on("translation-ready", (_, data) => {
+    if (translationReadyHandler)
+        translationReadyHandler(data);
+    else
+        pendingTranslationReady.push(data);
+});
+electron_1.ipcRenderer.on("region-changed", (_, data) => {
+    if (regionChangedHandler)
+        regionChangedHandler(data);
+    else
+        pendingRegionChanged.push(data);
+});
 exports.PROCESSING_EVENTS = {
     //global states
     UNAUTHORIZED: "procesing-unauthorized",
@@ -117,13 +135,16 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
     getSelectedRegions: () => electron_1.ipcRenderer.invoke("get-selected-regions"),
     deleteRegion: (regionId) => electron_1.ipcRenderer.invoke("delete-region", regionId),
     toggleRegionMonitoring: (regionId) => electron_1.ipcRenderer.invoke("toggle-region-monitoring", regionId),
-    // Translation events
+    // Translation events (buffer + flush once subscribed)
     onTranslationReady: (callback) => {
-        const subscription = (_, data) => callback(data);
-        electron_1.ipcRenderer.on("translation-ready", subscription);
-        return () => {
-            electron_1.ipcRenderer.removeListener("translation-ready", subscription);
-        };
+        translationReadyHandler = callback;
+        // flush any pending
+        if (pendingTranslationReady.length) {
+            const copy = pendingTranslationReady.splice(0);
+            copy.forEach((d) => callback(d));
+        }
+        // return an unsubscribe that clears handler
+        return () => { translationReadyHandler = null; };
     },
     onRegionAdded: (callback) => {
         const subscription = (_, data) => callback(data);
@@ -133,11 +154,25 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
         };
     },
     onRegionChanged: (callback) => {
-        const subscription = (_, data) => callback(data);
-        electron_1.ipcRenderer.on("region-changed", subscription);
+        regionChangedHandler = callback;
+        if (pendingRegionChanged.length) {
+            const copy = pendingRegionChanged.splice(0);
+            copy.forEach((d) => callback(d));
+        }
+        return () => { regionChangedHandler = null; };
+    },
+    // Language settings
+    onLanguageSettingsRequest: (callback) => {
+        const subscription = () => callback();
+        electron_1.ipcRenderer.on("get-language-settings-request", subscription);
         return () => {
-            electron_1.ipcRenderer.removeListener("region-changed", subscription);
+            electron_1.ipcRenderer.removeListener("get-language-settings-request", subscription);
         };
-    }
+    },
+    sendLanguageSettingsResponse: (settings) => {
+        electron_1.ipcRenderer.send("language-settings-response", settings);
+    },
+    getLanguageSettings: () => electron_1.ipcRenderer.invoke("get-language-settings"),
+    setLanguageSettings: (settings) => electron_1.ipcRenderer.invoke("set-language-settings", settings)
 });
 //# sourceMappingURL=preload.js.map

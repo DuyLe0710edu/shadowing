@@ -4,7 +4,7 @@ import { WindowHelper } from "./WindowHelper"
 import { ScreenshotHelper } from "./ScreenshotHelper"
 import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
-import { M2MTranslationManager } from "./M2MTranslationManager"
+import { TranslationManager } from "./TranslationManager"
 import { OCRServiceManager } from "./OCRServiceManager"
 
 export class AppState {
@@ -14,7 +14,7 @@ export class AppState {
   private screenshotHelper: ScreenshotHelper
   public shortcutsHelper: ShortcutsHelper
   public processingHelper: ProcessingHelper
-  public m2mTranslationManager: M2MTranslationManager
+  public translationManager: TranslationManager
   private ocrServiceManager: OCRServiceManager
 
   // View management
@@ -64,8 +64,8 @@ export class AppState {
     // Initialize OCR Service Manager
     this.ocrServiceManager = new OCRServiceManager()
 
-    // Initialize M2M Translation Manager (fast local translation)
-    this.m2mTranslationManager = new M2MTranslationManager(this.ocrServiceManager)
+    // Initialize Translation Manager (unified Apple/M2M translation)
+    this.translationManager = new TranslationManager(this.ocrServiceManager)
   }
 
   public static getInstance(): AppState {
@@ -195,13 +195,13 @@ export class AppState {
     return this.hasDebugged
   }
 
-  // Simple translation demo methods
-  public getM2MTranslationManager(): M2MTranslationManager {
-    return this.m2mTranslationManager
+  // Translation methods
+  public getTranslationManager(): TranslationManager {
+    return this.translationManager
   }
 
   public async startAreaSelection(): Promise<void> {
-    await this.m2mTranslationManager.startAreaSelection()
+    await this.translationManager.startAreaSelection()
   }
 
   public async initializeServices(): Promise<void> {

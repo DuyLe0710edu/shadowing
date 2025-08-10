@@ -1,5 +1,5 @@
 // TranslationCache.ts - In-memory cache for translation results
-import { TranslationResult } from './M2MTranslationManager'
+import { TranslationResult } from './TranslationManager'
 
 export interface CacheEntry {
   translatedText: string

@@ -2,6 +2,8 @@
 
 import { ipcMain, app } from "electron"
 import { AppState } from "./main"
+import fs from "node:fs"
+import path from "node:path"
 
 export function initializeIpcHandlers(appState: AppState): void {
   ipcMain.handle(
@@ -113,14 +115,62 @@ export function initializeIpcHandlers(appState: AppState): void {
   })
 
   ipcMain.handle("get-selected-regions", async () => {
-    return appState.getM2MTranslationManager().getSelectedRegions()
+    return appState.getTranslationManager().getSelectedRegions()
   })
 
   ipcMain.handle("delete-region", async (event, regionId: string) => {
-    return await appState.getM2MTranslationManager().deleteRegion(regionId)
+    return await appState.getTranslationManager().deleteRegion(regionId)
   })
 
   ipcMain.handle("toggle-region-monitoring", async (event, regionId: string) => {
-    return await appState.getM2MTranslationManager().toggleRegionMonitoring(regionId)
+    return await appState.getTranslationManager().toggleRegionMonitoring(regionId)
+  })
+
+  // Language settings handlers
+  const getSettingsFilePath = () => path.join(app.getPath("userData"), "settings.json")
+  
+  const loadPersistedSettings = (): { source: string, target: string } => {
+    try {
+      const settingsFile = getSettingsFilePath()
+      if (fs.existsSync(settingsFile)) {
+        const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'))
+        console.log('[SETTINGS] Loaded persisted language settings:', settings)
+        return settings
+      }
+    } catch (error) {
+      console.warn('[SETTINGS] Failed to load persisted settings:', error.message)
+    }
+    return { source: 'auto', target: 'en' }
+  }
+  
+  const saveSettings = (settings: { source: string, target: string }) => {
+    try {
+      const settingsFile = getSettingsFilePath()
+      fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8')
+      console.log('[SETTINGS] Saved language settings:', settings)
+    } catch (error) {
+      console.warn('[SETTINGS] Failed to save settings:', error.message)
+    }
+  }
+  
+  let currentLanguageSettings = loadPersistedSettings()
+  
+  ipcMain.handle("set-language-settings", async (event, settings: { source: string, target: string }) => {
+    currentLanguageSettings = settings
+    saveSettings(settings) // Persist to disk
+    console.log('Language settings updated:', settings)
+    return true
+  })
+
+  ipcMain.handle("get-language-settings", async () => {
+    return currentLanguageSettings
+  })
+
+  // Language settings communication handlers for TranslationManager
+  ipcMain.on("language-settings-response", (event, settings: { source: string, target: string }) => {
+    // Update stored settings when received from renderer
+    currentLanguageSettings = settings
+    saveSettings(settings) // Persist to disk
+    console.log('Language settings received from renderer:', settings)
   })
 }

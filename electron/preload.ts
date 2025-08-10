@@ -1,5 +1,21 @@
 import { contextBridge, ipcRenderer } from "electron"
 
+// Pending event buffers to avoid losing early IPC before renderer subscribes
+const pendingTranslationReady: any[] = []
+const pendingRegionChanged: any[] = []
+let translationReadyHandler: ((data: any) => void) | null = null
+let regionChangedHandler: ((data: any) => void) | null = null
+
+// Early listeners fill buffers; real callbacks get set via exposed API below
+ipcRenderer.on("translation-ready", (_: any, data: any) => {
+  if (translationReadyHandler) translationReadyHandler(data)
+  else pendingTranslationReady.push(data)
+})
+ipcRenderer.on("region-changed", (_: any, data: any) => {
+  if (regionChangedHandler) regionChangedHandler(data)
+  else pendingRegionChanged.push(data)
+})
+
 // Types for the exposed Electron API
 interface ElectronAPI {
   updateContentDimensions: (dimensions: {
@@ -32,6 +48,21 @@ interface ElectronAPI {
   analyzeAudioFile: (path: string) => Promise<{ text: string; timestamp: number }>
   analyzeImageFile: (path: string) => Promise<void>
   quitApp: () => Promise<void>
+  
+  // Translation system
+  startAreaSelection: () => Promise<void>
+  getSelectedRegions: () => Promise<any[]>
+  deleteRegion: (regionId: string) => Promise<boolean>
+  toggleRegionMonitoring: (regionId: string) => Promise<boolean>
+  onTranslationReady: (callback: (data: any) => void) => () => void
+  onRegionAdded: (callback: (data: any) => void) => () => void
+  onRegionChanged: (callback: (data: any) => void) => () => void
+  
+  // Language settings
+  onLanguageSettingsRequest?: (callback: () => void) => () => void
+  sendLanguageSettingsResponse?: (settings: { source: string, target: string }) => void
+  getLanguageSettings?: () => Promise<{ source: string, target: string }>
+  setLanguageSettings?: (settings: { source: string, target: string }) => Promise<boolean>
 }
 
 export const PROCESSING_EVENTS = {
@@ -173,13 +204,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteRegion: (regionId: string) => ipcRenderer.invoke("delete-region", regionId),
   toggleRegionMonitoring: (regionId: string) => ipcRenderer.invoke("toggle-region-monitoring", regionId),
   
-  // Translation events
+  // Translation events (buffer + flush once subscribed)
   onTranslationReady: (callback: (data: any) => void) => {
-    const subscription = (_: any, data: any) => callback(data)
-    ipcRenderer.on("translation-ready", subscription)
-    return () => {
-      ipcRenderer.removeListener("translation-ready", subscription)
+    translationReadyHandler = callback
+    // flush any pending
+    if (pendingTranslationReady.length) {
+      const copy = pendingTranslationReady.splice(0)
+      copy.forEach((d) => callback(d))
     }
+    // return an unsubscribe that clears handler
+    return () => { translationReadyHandler = null }
   },
   onRegionAdded: (callback: (data: any) => void) => {
     const subscription = (_: any, data: any) => callback(data)
@@ -189,10 +223,25 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
   },
   onRegionChanged: (callback: (data: any) => void) => {
-    const subscription = (_: any, data: any) => callback(data)
-    ipcRenderer.on("region-changed", subscription)
-    return () => {
-      ipcRenderer.removeListener("region-changed", subscription)
+    regionChangedHandler = callback
+    if (pendingRegionChanged.length) {
+      const copy = pendingRegionChanged.splice(0)
+      copy.forEach((d) => callback(d))
     }
-  }
+    return () => { regionChangedHandler = null }
+  },
+  
+  // Language settings
+  onLanguageSettingsRequest: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on("get-language-settings-request", subscription)
+    return () => {
+      ipcRenderer.removeListener("get-language-settings-request", subscription)
+    }
+  },
+  sendLanguageSettingsResponse: (settings: { source: string, target: string }) => {
+    ipcRenderer.send("language-settings-response", settings)
+  },
+  getLanguageSettings: () => ipcRenderer.invoke("get-language-settings"),
+  setLanguageSettings: (settings: { source: string, target: string }) => ipcRenderer.invoke("set-language-settings", settings)
 } as ElectronAPI)

@@ -84,7 +84,8 @@ class WindowHelper {
         };
         this.mainWindow = new electron_1.BrowserWindow(windowSettings);
         // this.mainWindow.webContents.openDevTools()
-        this.mainWindow.setContentProtection(true);
+        //this.mainWindow.setContentProtection(true)
+        this.mainWindow.setContentProtection(false);
         if (process.platform === "darwin") {
             this.mainWindow.setVisibleOnAllWorkspaces(true, {
                 visibleOnFullScreen: true

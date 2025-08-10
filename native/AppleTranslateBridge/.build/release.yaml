@@ -1,0 +1,66 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "AppleTranslateBridge-arm64-apple-macosx15.0-release.exe": ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.exe>"]
+  "AppleTranslateBridge-arm64-apple-macosx15.0-release.module": ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.exe>","<AppleTranslateBridge-arm64-apple-macosx15.0-release.module>"]
+  "test": ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.exe>","<AppleTranslateBridge-arm64-apple-macosx15.0-release.module>"]
+default: "main"
+nodes:
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/main.swift"]
+    outputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/sources"]
+    description: "Write auxiliary file /Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/sources"
+
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swift.o"]
+    outputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.product/Objects.LinkFileList"
+
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+
+  "<AppleTranslateBridge-arm64-apple-macosx15.0-release.exe>":
+    tool: phony
+    inputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge"]
+    outputs: ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.exe>"]
+
+  "<AppleTranslateBridge-arm64-apple-macosx15.0-release.module>":
+    tool: phony
+    inputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swift.o","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/Modules/AppleTranslateBridge.swiftmodule"]
+    outputs: ["<AppleTranslateBridge-arm64-apple-macosx15.0-release.module>"]
+
+  "C.AppleTranslateBridge-arm64-apple-macosx15.0-release.exe":
+    tool: shell
+    inputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swift.o","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.product/Objects.LinkFileList"]
+    outputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge"]
+    description: "Linking ./.build/arm64-apple-macosx/release/AppleTranslateBridge"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release","-o","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge","-module-name","AppleTranslateBridge","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-dead_strip","-Xlinker","-alias","-Xlinker","_AppleTranslateBridge_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.product/Objects.LinkFileList","-target","arm64-apple-macosx15.0","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.AppleTranslateBridge-arm64-apple-macosx15.0-release.module":
+    tool: shell
+    inputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/main.swift","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/sources"]
+    outputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/main.swift.o","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/Modules/AppleTranslateBridge.swiftmodule"]
+    description: "Compiling Swift Module 'AppleTranslateBridge' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","AppleTranslateBridge","-emit-dependencies","-emit-module","-emit-module-path","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/Modules/AppleTranslateBridge.swiftmodule","-output-file-map","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/output-file-map.json","-whole-module-optimization","-num-threads","11","-c","@/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge.build/sources","-I","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/Modules","-target","arm64-apple-macosx15.0","-O","-j11","-DSWIFT_PACKAGE","-module-cache-path","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","AppleTranslateBridge_main","-parse-as-library","-swift-version","6","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","appletranslatebridge"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Package.swift","/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

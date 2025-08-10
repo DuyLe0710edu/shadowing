@@ -6,7 +6,7 @@ import fs from "node:fs"
 import { app } from "electron"
 import screenshot from "screenshot-desktop"
 import sharp from "sharp"
-import { OCRServiceManager } from "./OCRServiceManager"
+import { OCRServiceManager, OCRResult } from "./OCRServiceManager"
 
 export interface SelectedRegion {
   id: string
@@ -30,6 +30,7 @@ export interface RegionChangeData {
 export class AreaSelectionHelper {
   private selectedRegions: Map<string, SelectedRegion> = new Map()
   private selectionWindow: BrowserWindow | null = null
+  private regionOverlays: Map<string, BrowserWindow> = new Map()
   private monitoringInterval: NodeJS.Timeout | null = null
   private readonly MONITOR_INTERVAL = 1000 // Check every second
   private readonly regionsDir: string
@@ -41,6 +42,9 @@ export class AreaSelectionHelper {
       fs.mkdirSync(this.regionsDir, { recursive: true })
     }
     this.ocrServiceManager = ocrServiceManager
+    
+    // Load persisted regions on startup
+    this.loadPersistedRegions()
   }
 
   public async startAreaSelection(): Promise<void> {
@@ -55,12 +59,13 @@ export class AreaSelectionHelper {
     const displays = screen.getAllDisplays()
     const primaryDisplay = screen.getPrimaryDisplay()
 
-    // Create a transparent window covering all displays
+    // Create a transparent window covering the entire screen (including menubar area)
+    const bounds = primaryDisplay.bounds
     this.selectionWindow = new BrowserWindow({
-      x: 0,
-      y: 0,
-      width: screen.getPrimaryDisplay().size.width,
-      height: screen.getPrimaryDisplay().size.height,
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
       frame: false,
       transparent: true,
       alwaysOnTop: true,
@@ -76,6 +81,8 @@ export class AreaSelectionHelper {
         preload: path.join(__dirname, "area-selection-preload.js")
       }
     })
+    
+    console.log(`Selection window bounds: x=${bounds.x}, y=${bounds.y}, w=${bounds.width}, h=${bounds.height}`)
 
     // Window is transparent, selection elements will be visible
 
@@ -110,25 +117,69 @@ export class AreaSelectionHelper {
   private async handleSelectionCompleted(selection: { x: number, y: number, width: number, height: number }) {
     const regionId = uuidv4()
     const primaryDisplay = screen.getPrimaryDisplay()
+    const bounds = primaryDisplay.bounds
+    const workArea = primaryDisplay.workArea
+    const scaleFactor = primaryDisplay.scaleFactor
     
+    
+    console.log(`[DEBUG] Raw browser selection coords: x=${selection.x}, y=${selection.y}, w=${selection.width}, h=${selection.height}`)
+    console.log(`[DEBUG] Primary display bounds: x=${bounds.x}, y=${bounds.y}, w=${bounds.width}, h=${bounds.height}`)
+    console.log(`[DEBUG] Primary display workArea: x=${workArea.x}, y=${workArea.y}, w=${workArea.width}, h=${workArea.height}`)
+    console.log(`[DEBUG] Display scale factor: ${scaleFactor}`)
+    
+    // Check if selection window was positioned correctly
+    if (this.selectionWindow) {
+      const windowBounds = this.selectionWindow.getBounds()
+      console.log(`[DEBUG] Selection window bounds: x=${windowBounds.x}, y=${windowBounds.y}, w=${windowBounds.width}, h=${windowBounds.height}`)
+      console.log(`[DEBUG] Selection window position matches display bounds: ${windowBounds.x === bounds.x && windowBounds.y === bounds.y}`)
+    }
+    
+    // Convert selection coordinates to screen coordinates
+    // Since selection window covers full bounds, coordinates should be absolute
     const region: SelectedRegion = {
       id: regionId,
-      x: selection.x,
-      y: selection.y,
+      x: bounds.x + selection.x,
+      y: bounds.y + selection.y,
       width: selection.width,
       height: selection.height,
       displayId: primaryDisplay.id,
-      isActive: false
+      isActive: true
     }
+    
+    console.log(`[DEBUG] Calculated region coords: x=${region.x}, y=${region.y}, w=${region.width}, h=${region.height}`)
+    console.log(`[DEBUG] Region center point: x=${region.x + region.width/2}, y=${region.y + region.height/2}`)
+    console.log(`[DEBUG] Screen center point: x=${bounds.width/2}, y=${bounds.height/2}`)
+    
+    // Additional debug info to understand the coordinate system
+    const mousePosition = screen.getCursorScreenPoint()
+    console.log(`[DEBUG] Current mouse position: x=${mousePosition.x}, y=${mousePosition.y}`)
+    
+    // Check if region coordinates are within display bounds
+    const withinBounds = region.x >= bounds.x && 
+                        region.y >= bounds.y && 
+                        region.x + region.width <= bounds.x + bounds.width && 
+                        region.y + region.height <= bounds.y + bounds.height
+    console.log(`[DEBUG] Region within display bounds: ${withinBounds}`)
+    console.log(`==================== COORDINATE DEBUG END ====================`)
 
     this.selectedRegions.set(regionId, region)
+    this.saveRegions() // Persist after adding region
     this.stopAreaSelection()
 
-    // Take initial screenshot of the region
+    // Create overlay for this region (will show immediately because isActive=true)
+    this.createRegionOverlay(region)
+
+    // Ensure monitoring loop is running
+    if (!this.monitoringInterval) {
+      console.log('[MONITOR] Starting after first region selection')
+      this.startMonitoring()
+    }
+
+    // Take initial screenshot so the UI populates right away
     await this.captureRegion(region)
 
     // Notify main window about new region
-    this.notifyRegionChange("region-added", region)
+    this.notifyRegionChange('region-added', region)
   }
 
   public async captureRegion(region: SelectedRegion): Promise<string | null> {
@@ -153,14 +204,8 @@ export class AreaSelectionHelper {
 
   private async captureRegionScreenshot(region: SelectedRegion): Promise<Buffer | null> {
     try {
-      // Use screenshot-desktop to capture the full screen
-      const sources = await desktopCapturer.getSources({ 
-        types: ['screen'],
-        thumbnailSize: { width: 1920, height: 1080 }
-      })
-
-      if (sources.length === 0) return null
-
+      console.log(`[SCREENSHOT] Capturing region: x=${region.x}, y=${region.y}, w=${region.width}, h=${region.height}`)
+      
       // Get the display that contains this region
       const display = screen.getDisplayMatching({
         x: region.x,
@@ -168,22 +213,44 @@ export class AreaSelectionHelper {
         width: region.width,
         height: region.height
       })
+      
+      console.log(`[SCREENSHOT] Display bounds: x=${display.bounds.x}, y=${display.bounds.y}, w=${display.bounds.width}, h=${display.bounds.height}`)
 
-      // Take screenshot of the entire virtual screen. On macOS the numeric
-      // screen index expected by the `screenshot-desktop` CLI does not match
-      // Electron's `display.id`, which caused the “No displays detected”
-      // error.  Falling back to a generic capture is safer and works even
-      // on single-monitor setups.
-
+      // Take screenshot of the entire screen
       const fullScreenshot = await screenshot()  // PNG buffer
+      
+      // Calculate crop coordinates relative to the full screenshot.
+      // NOTE: Electron region coordinates are in *logical* pixels, whereas the
+      // screenshot buffer is in *device* pixels.  We therefore scale by the
+      // display’s scaleFactor (2.0 on most Retina Macs) to avoid vertical
+      // offset bugs where the wrong part of the screen is captured.
+      const factor = display.scaleFactor || 1
+
+      const cropLeftLogical = region.x - display.bounds.x
+      const cropTopLogical  = region.y - display.bounds.y
+
+      const cropLeft = Math.round(cropLeftLogical * factor)
+      const cropTop  = Math.round(cropTopLogical  * factor)
+      const cropWidth  = Math.round(region.width  * factor)
+      const cropHeight = Math.round(region.height * factor)
+      
+      console.log(`[SCREENSHOT] Crop coordinates (device pixels): left=${cropLeft}, top=${cropTop}, w=${cropWidth}, h=${cropHeight} (scaleFactor=${factor})`)
+      
+      // Ensure crop coordinates are within bounds
+      const safeLeft   = Math.max(0, Math.min(cropLeft,  display.bounds.width  * factor - cropWidth))
+      const safeTop    = Math.max(0, Math.min(cropTop,   display.bounds.height * factor - cropHeight))
+      const safeWidth  = Math.min(cropWidth,  display.bounds.width  * factor - safeLeft)
+      const safeHeight = Math.min(cropHeight, display.bounds.height * factor - safeTop)
+      
+      console.log(`[SCREENSHOT] Safe crop (device pixels): left=${safeLeft}, top=${safeTop}, w=${safeWidth}, h=${safeHeight}`)
       
       // Crop to the selected region using Sharp
       const croppedImage = await sharp(fullScreenshot)
         .extract({
-          left: Math.max(0, region.x - display.bounds.x),
-          top: Math.max(0, region.y - display.bounds.y),
-          width: region.width,
-          height: region.height
+          left: safeLeft,
+          top: safeTop,
+          width: safeWidth,
+          height: safeHeight
         })
         .png()
         .toBuffer()
@@ -230,8 +297,9 @@ export class AreaSelectionHelper {
       const filepath = await this.saveRegionScreenshot(region, screenshot)
       if (!filepath) return
 
-      // Extract text using EasyOCR
-      const extractedText = await this.extractTextFromImage(filepath)
+      // Extract text using OCR service
+      const ocrResult = await this.extractTextFromImage(filepath)
+      const extractedText = ocrResult.text
       
       // Compare with previous text
       if (region.lastText === extractedText) return
@@ -241,27 +309,38 @@ export class AreaSelectionHelper {
 
       // Only proceed if we have meaningful text
       if (extractedText && extractedText.trim().length > 2) {
-        this.notifyRegionChange("region-changed", region, filepath)
+        this.notifyRegionChange('region-changed', region, filepath)
+        // Live-update the overlay with the new raw text and its metadata
+        const overlay = this.regionOverlays.get(region.id)
+        overlay?.webContents.send('overlay-update', {
+          id: region.id,
+          text: extractedText,
+          confidence: ocrResult.confidence,
+          timestamp: Date.now()
+        })
       }
     } catch (error) {
       console.error(`[REGION] Error:`, error.message)
     }
   }
 
-  private async extractTextFromImage(imagePath: string): Promise<string> {
+  private async extractTextFromImage(imagePath: string): Promise<OCRResult> {
     try {
       const result = await this.ocrServiceManager.extractText(imagePath)
-      
+
+      // Accept all OCR results regardless of confidence so that the raw
+      // text is always visible in the UI.  Low-confidence hits are still
+      // logged for debugging, but we no longer discard them.
       if (result.confidence < 70) {
-        console.log(`[OCR] Low confidence (${result.confidence}%)`)
-        return ''
+        console.log(`[OCR] Low confidence (${result.confidence}%) – displaying anyway`)
       }
-      
+
       console.log(`[OCR] "${result.text}" (${result.confidence}%)`)
-      return result.text.trim()
+      result.text = result.text.trim()
+      return result
     } catch (error) {
       console.error(`[OCR] Failed:`, error.message)
-      return ''
+      return { text: '', confidence: 0, wordCount: 0 }
     }
   }
 
@@ -294,8 +373,12 @@ export class AreaSelectionHelper {
     // Stop monitoring this region
     region.isActive = false
     
+    // Destroy the overlay for this region
+    this.destroyRegionOverlay(regionId)
+    
     // Remove from map
     this.selectedRegions.delete(regionId)
+    this.saveRegions() // Persist after deleting region
 
     // Clean up any saved screenshots for this region
     this.cleanupRegionFiles(regionId)
@@ -312,7 +395,11 @@ export class AreaSelectionHelper {
     }
 
     region.isActive = !region.isActive
+    this.saveRegions() // Persist after toggling region state
     console.log(`Region ${regionId} monitoring ${region.isActive ? 'ENABLED' : 'DISABLED'}`)
+    
+    // Update the overlay to reflect the new state
+    this.updateRegionOverlay(region)
     
     if (region.isActive && !this.monitoringInterval) {
       console.log(`Starting monitoring interval...`)
@@ -344,6 +431,8 @@ export class AreaSelectionHelper {
     if (mainWindow) {
       mainWindow.webContents.send(event, { region, filepath })
     }
+    // Also notify other main-process listeners (e.g., M2MTranslationManager)
+    ipcMain.emit(event, null, { region, filepath })
   }
 
   private generateSelectionHTML(): string {
@@ -477,9 +566,196 @@ export class AreaSelectionHelper {
     `
   }
 
+  private createRegionOverlay(region: SelectedRegion): void {
+    console.log(`Creating overlay for region ${region.id}`)
+    
+    const overlay = new BrowserWindow({
+      x: region.x,
+      y: region.y,
+      width: region.width,
+      height: region.height,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: false, // Start hidden behind other windows
+      skipTaskbar: true,
+      resizable: false,
+      movable: false,
+      focusable: false,
+      show: false,
+      backgroundColor: '#00000000',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'overlay-preload.js')
+      }
+    })
+
+    // Create a subtle overlay HTML
+    const overlayHtml = this.generateOverlayHTML(region)
+    overlay.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`)
+
+    overlay.webContents.once('did-finish-load', () => {
+      // Tell the overlay which region it belongs to so it can filter updates
+      overlay.webContents.send('overlay-init', { id: region.id })
+
+      if (region.isActive) {
+        overlay.show()
+      }
+    })
+
+    // Store the overlay
+    this.regionOverlays.set(region.id, overlay)
+  }
+
+  private generateOverlayHTML(region: SelectedRegion): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .region-label {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(0, 0, 0, 0.7);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 9px;
+            font-weight: 500;
+            border-radius: 3px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        .active-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            background: rgba(0, 255, 100, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0, 255, 100, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: scale(1); box-shadow: 0 0 8px rgba(0, 255, 100, 0.4); }
+            50% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 12px rgba(0, 255, 100, 0.6); }
+            100% { opacity: 0.8; transform: scale(1); box-shadow: 0 0 8px rgba(0, 255, 100, 0.4); }
+        }
+    </style>
+</head>
+<body>
+    <div class="region-label"></div>
+    <div class="active-indicator" style="display: ${region.isActive ? 'block' : 'none'}"></div>
+    <div id="ocrText" style="position:absolute; bottom:4px; left:4px; right:4px; color:white; font-size:10px; font-family: monospace; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+    <script>
+      // Receive live updates from the preload API
+      window.electronOverlayAPI?.onUpdate(({ text }) => {
+        const el = document.getElementById('ocrText');
+        if (el) el.innerText = text;
+      });
+    </script>
+</body>
+</html>
+    `
+  }
+
+  private updateRegionOverlay(region: SelectedRegion): void {
+    const overlay = this.regionOverlays.get(region.id)
+    if (!overlay || overlay.isDestroyed()) {
+      return
+    }
+
+    if (region.isActive) {
+      overlay.show()
+      overlay.setAlwaysOnTop(true, 'screen-saver')
+    } else {
+      overlay.hide()
+      overlay.setAlwaysOnTop(false)
+    }
+
+    // Update the overlay content to show active state
+    const overlayHtml = this.generateOverlayHTML(region)
+    overlay.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`)
+  }
+
+  private destroyRegionOverlay(regionId: string): void {
+    const overlay = this.regionOverlays.get(regionId)
+    if (overlay && !overlay.isDestroyed()) {
+      overlay.close()
+    }
+    this.regionOverlays.delete(regionId)
+  }
+
+  private getRegionsFilePath(): string {
+    return path.join(app.getPath("userData"), "regions.json")
+  }
+
+  private loadPersistedRegions(): void {
+    try {
+      const regionsFile = this.getRegionsFilePath()
+      if (fs.existsSync(regionsFile)) {
+        const regionsData = JSON.parse(fs.readFileSync(regionsFile, 'utf8'))
+        console.log('[REGIONS] Loading persisted regions:', regionsData)
+        
+        // Convert array back to Map
+        if (Array.isArray(regionsData)) {
+          for (const region of regionsData) {
+            this.selectedRegions.set(region.id, region)
+          }
+          console.log(`[REGIONS] Loaded ${regionsData.length} persisted regions`)
+        }
+      }
+    } catch (error) {
+      console.warn('[REGIONS] Failed to load persisted regions:', error.message)
+    }
+  }
+
+  private saveRegions(): void {
+    try {
+      const regionsFile = this.getRegionsFilePath()
+      const regionsArray = Array.from(this.selectedRegions.values())
+      fs.writeFileSync(regionsFile, JSON.stringify(regionsArray, null, 2), 'utf8')
+      console.log(`[REGIONS] Saved ${regionsArray.length} regions to storage`)
+    } catch (error) {
+      console.warn('[REGIONS] Failed to save regions:', error.message)
+    }
+  }
+
   public cleanup(): void {
     this.stopMonitoring()
     this.stopAreaSelection()
+    
+    // Save regions before cleanup
+    this.saveRegions()
+    
+    // Close all region overlays
+    for (const [regionId, overlay] of this.regionOverlays) {
+      if (!overlay.isDestroyed()) {
+        overlay.close()
+      }
+    }
+    this.regionOverlays.clear()
+    
     this.selectedRegions.clear()
   }
 }

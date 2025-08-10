@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/duy.ggy/shadowing/native/AppleTranslateBridge/.build/arm64-apple-macosx/release/AppleTranslateBridge'
+relocations:     []
+...

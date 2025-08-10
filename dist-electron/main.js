@@ -7,7 +7,7 @@ const WindowHelper_1 = require("./WindowHelper");
 const ScreenshotHelper_1 = require("./ScreenshotHelper");
 const shortcuts_1 = require("./shortcuts");
 const ProcessingHelper_1 = require("./ProcessingHelper");
-const M2MTranslationManager_1 = require("./M2MTranslationManager");
+const TranslationManager_1 = require("./TranslationManager");
 const OCRServiceManager_1 = require("./OCRServiceManager");
 class AppState {
     static instance = null;
@@ -15,7 +15,7 @@ class AppState {
     screenshotHelper;
     shortcutsHelper;
     processingHelper;
-    m2mTranslationManager;
+    translationManager;
     ocrServiceManager;
     // View management
     view = "queue";
@@ -47,8 +47,8 @@ class AppState {
         this.shortcutsHelper = new shortcuts_1.ShortcutsHelper(this);
         // Initialize OCR Service Manager
         this.ocrServiceManager = new OCRServiceManager_1.OCRServiceManager();
-        // Initialize M2M Translation Manager (fast local translation)
-        this.m2mTranslationManager = new M2MTranslationManager_1.M2MTranslationManager(this.ocrServiceManager);
+        // Initialize Translation Manager (unified Apple/M2M translation)
+        this.translationManager = new TranslationManager_1.TranslationManager(this.ocrServiceManager);
     }
     static getInstance() {
         if (!AppState.instance) {
@@ -141,12 +141,12 @@ class AppState {
     getHasDebugged() {
         return this.hasDebugged;
     }
-    // Simple translation demo methods
-    getM2MTranslationManager() {
-        return this.m2mTranslationManager;
+    // Translation methods
+    getTranslationManager() {
+        return this.translationManager;
     }
     async startAreaSelection() {
-        await this.m2mTranslationManager.startAreaSelection();
+        await this.translationManager.startAreaSelection();
     }
     async initializeServices() {
         await this.ocrServiceManager.start();

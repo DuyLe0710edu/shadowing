@@ -23,6 +23,22 @@ export interface ElectronAPI {
   analyzeAudioFromBase64: (data: string, mimeType: string) => Promise<{ text: string; timestamp: number }>
   analyzeAudioFile: (path: string) => Promise<{ text: string; timestamp: number }>
   quitApp: () => Promise<void>
+  
+  // Translation system
+  startAreaSelection: () => Promise<void>
+  getSelectedRegions: () => Promise<any[]>
+  deleteRegion: (regionId: string) => Promise<boolean>
+  toggleRegionMonitoring: (regionId: string) => Promise<boolean>
+  onTranslationReady: (callback: (data: any) => void) => () => void
+  onRegionAdded: (callback: (data: any) => void) => () => void
+  onRegionChanged: (callback: (data: any) => void) => () => void
+  onRegionDeleted?: (callback: (data: any) => void) => () => void
+  
+  // Language settings
+  onLanguageSettingsRequest?: (callback: () => void) => () => void
+  sendLanguageSettingsResponse?: (settings: { source: string, target: string }) => void
+  getLanguageSettings?: () => Promise<{ source: string, target: string }>
+  setLanguageSettings?: (settings: { source: string, target: string }) => Promise<boolean>
 }
 
 declare global {
