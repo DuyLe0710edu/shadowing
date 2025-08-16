@@ -23,6 +23,7 @@ struct ErrorResponse: Codable {
 
 final class LanguageDetectionService {
   private let recognizer = NLLanguageRecognizer()
+  
   func detect(for text: String) -> String? {
     recognizer.reset()
     recognizer.processString(text)
@@ -36,7 +37,8 @@ final class LanguageDetectionService {
     case .portuguese: return "pt"
     case .japanese: return "ja"
     case .korean: return "ko"
-    case .simplifiedChinese, .traditionalChinese: return "zh"
+    case .simplifiedChinese: return "zh-Hans"
+    case .traditionalChinese: return "zh-Hant"
     case .russian: return "ru"
     case .arabic: return "ar"
     case .hindi: return "hi"
@@ -47,6 +49,21 @@ final class LanguageDetectionService {
     case .turkish: return "tr"
     default: return lang.rawValue
     }
+  }
+  
+  private func normalizeTag(_ raw: String) -> String {
+    let t = raw.lowercased()
+    if t.hasPrefix("zh") {
+      // Default to Hans if script missing
+      return t.contains("hant") ? "zh-Hant" : "zh-Hans"
+    }
+    // Keep only the base language for most languages (en, es, fr, ...)
+    // "en-US" -> "en", "pt-BR" -> "pt"
+    return t.split(separator: "-").first.map(String.init) ?? t
+  }
+  
+  func normalizeLanguage(_ raw: String) -> String {
+    return normalizeTag(raw)
   }
 }
 
@@ -108,40 +125,41 @@ final class TranslationManager: ObservableObject {
   @Published var pending: TranslationRequest?
   @Published var result: String?
   @Published var errMsg: String?
+  private var pendingContinuation: CheckedContinuation<String, Never>?
 
   private let detector = LanguageDetectionService()
-  private let supported = ["en","ar","zh","fr","de","es","it","ja","ko","pt","ru","tr","id","pl","nl","th","vi","uk","hi"]
+  private let supported: Set<String> = ["en","ar","zh-Hans","zh-Hant","fr","de","es","it","ja","ko","pt","ru","tr","id","pl","nl","th","vi","uk","hi"]
 
   func translate(_ req: TranslationRequest) async -> TranslationResponse {
     let start = Date()
 
-    let src = (req.source == "auto") ? (detector.detect(for: req.text) ?? "en") : req.source
-    guard supported.contains(src), supported.contains(req.target) else {
+    let srcRaw = (req.source == "auto") ? (detector.detect(for: req.text) ?? "en") : req.source
+    let src = detector.normalizeLanguage(srcRaw)
+    let tgt = detector.normalizeLanguage(req.target)
+    
+    guard supported.contains(src), supported.contains(tgt) else {
       return TranslationResponse(translatedText: req.text, detectedSource: src, confidence: 0.0, processingTime: elapsedMs(since: start))
     }
-    if src == req.target {
+    if src == tgt {
       return TranslationResponse(translatedText: req.text, detectedSource: src, confidence: 1.0, processingTime: elapsedMs(since: start))
     }
 
     // Prepare session via translationTask
     pending = req
-    result = nil
     errMsg = nil
-    currentConfig = TranslationSession.Configuration(
-      source: .init(identifier: src),
-      target: .init(identifier: req.target)
-    )
 
-    var tries = 0
-    while result == nil && errMsg == nil && tries < 200 {
-      try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms
-      tries += 1
+    let translatedText = await withCheckedContinuation { cont in
+      self.pendingContinuation = cont
+      self.currentConfig = TranslationSession.Configuration(
+        source: .init(identifier: src),
+        target: .init(identifier: tgt)
+      )
     }
-
+    
     return TranslationResponse(
-      translatedText: result ?? req.text,
+      translatedText: translatedText,
       detectedSource: src,
-      confidence: (result != nil ? 0.95 : 0.1),
+      confidence: 0.98,
       processingTime: elapsedMs(since: start)
     )
   }
@@ -150,14 +168,20 @@ final class TranslationManager: ObservableObject {
     guard let req = pending else { return }
     Task {
       do {
-        try await session.prepareTranslation()
+        try await session.prepareTranslation() // Ensures models are present (may download)
         let r = try await session.translate(req.text)
-        await MainActor.run { result = r.targetText }
+        await MainActor.run {
+          pendingContinuation?.resume(returning: r.targetText)
+        }
       } catch {
         await MainActor.run {
           errMsg = error.localizedDescription
-          result = req.text
+          pendingContinuation?.resume(returning: req.text) // Degrade gracefully
         }
+      }
+      await MainActor.run {
+        pendingContinuation = nil
+        pending = nil
       }
     }
   }

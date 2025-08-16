@@ -26,3 +26,15 @@ if #available(macOS 15.0, *) {
     print("macOS 15.0+ required")
     exit(1)
 }
+
+
+func testTranslation2() {
+    let config = TranslationSession.Configuration(
+        source: Locale.Language(identifier: "en"),
+        target: Locale.Language(identifier: "ja")
+    )
+
+    let session = TranslationSession(configuration: config)
+    let result = session.translate(text: "Hello, good morning how are you doing ?")
+    print(result)
+}

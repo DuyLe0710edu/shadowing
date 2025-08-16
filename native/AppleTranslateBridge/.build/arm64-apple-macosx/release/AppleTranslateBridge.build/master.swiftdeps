@@ -1,6 +1,6 @@
 version: "Apple Swift version 6.0.2 (swiftlang-6.0.2.1.2 clang-1600.0.26.4)"
 options: "503c8c82178ee338aae6fb782d6b9f9afc0a5ccf1549af7ccb2d53c65e50381b"
-build_start_time: [1754811962, 269649000]
-build_end_time: [1754811963, 103065000]
+build_start_time: [1754820000, 160671000]
+build_end_time: [1754820004, 431233000]
 inputs:
-  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/main.swift": [1754811956, 732977898]
+  "/Users/duy.ggy/shadowing/native/AppleTranslateBridge/Sources/AppleTranslateBridge/main.swift": [1754819386, 163258428]
