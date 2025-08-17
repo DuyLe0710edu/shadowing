@@ -37,9 +37,36 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
   const [targetLanguage, setTargetLanguage] = useState<string>('en')
   const [sourceLanguage, setSourceLanguage] = useState<string>('auto')
   const [settingsLoaded, setSettingsLoaded] = useState<boolean>(false)
+  const [listenersVersion, setListenersVersion] = useState<number>(0)
+  const [lastEventTs, setLastEventTs] = useState<number | null>(null)
+  const [lastTranslationEventTs, setLastTranslationEventTs] = useState<number | null>(null)
+  const [lastOcrEventTs, setLastOcrEventTs] = useState<number | null>(null)
+  const suppressedCountRef = useRef<number>(0)
+  const [nowTs, setNowTs] = useState<number>(Date.now())
   const contentRef = useRef<HTMLDivElement>(null)
   const rawListRef = useRef<HTMLDivElement>(null)
   const historyListRef = useRef<HTMLDivElement>(null)
+
+  // Keep track of last-seen OCR text per region to suppress duplicates
+  const lastHistoryTextByRegionRef = useRef<Map<string, string>>(new Map())
+  const lastRawTextByRegionRef = useRef<Map<string, string>>(new Map())
+
+  // Normalize OCR text to make duplicate detection robust
+  const normalizeOcrText = (text: string): string => {
+    if (!text) return ''
+    return text
+      .normalize('NFKC')
+      .replace(/\s+/g, ' ') // collapse whitespace
+      .trim()
+      .toLowerCase()
+  }
+
+  // Heartbeat to evaluate live status dot
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const isLive = lastTranslationEventTs !== null && (nowTs - lastTranslationEventTs) < 5000
 
   const languages = [
     { code: 'auto', name: 'Auto-detect', flag: '🌐' },
@@ -161,6 +188,8 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         timestamp: number 
       }) => {
         console.log("Translation ready:", data)
+        setLastEventTs(Date.now())
+        setLastTranslationEventTs(Date.now())
         
         // Update the region with new text
         setSelectedRegions(prev => 
@@ -174,14 +203,23 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         // Update translations
         setTranslations(prev => new Map(prev.set(data.regionId, data.translation)))
         
-        // Add to translation history
-        setTranslationHistory(prev => [{
-          id: `${data.regionId}_${data.timestamp}`,
-          regionId: data.regionId,
-          originalText: data.originalText,
-          translation: data.translation,
-          timestamp: data.timestamp
-        }, ...prev.slice(0, 49)]) // Keep last 50 translations
+        // Add to translation history with duplicate suppression (per region; keep earliest)
+        setTranslationHistory(prev => {
+          const normalized = normalizeOcrText(data.originalText)
+          const lastSeen = lastHistoryTextByRegionRef.current.get(data.regionId)
+          if (lastSeen === normalized) {
+            suppressedCountRef.current += 1
+            return prev
+          }
+          lastHistoryTextByRegionRef.current.set(data.regionId, normalized)
+          return [{
+            id: `${data.regionId}_${data.timestamp}`,
+            regionId: data.regionId,
+            originalText: data.originalText,
+            translation: data.translation,
+            timestamp: data.timestamp
+          }, ...prev.slice(0, 49)] // Keep last 50 translations
+        })
         
         // Auto-scroll to top of translation history list
         setTimeout(() => historyListRef.current && (historyListRef.current.scrollTop = 0), 0)
@@ -198,6 +236,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
       
       // Listen for region changes (new text detected)
       window.electronAPI.onRegionChanged((data: { region: SelectedRegion }) => {
+        setLastEventTs(Date.now())
         setSelectedRegions(prev => {
           const idx = prev.findIndex(r => r.id === data.region.id)
           if (idx === -1) return prev
@@ -205,10 +244,13 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
           next[idx] = { ...data.region }
           return next
         })
-        // Update raw feed (deduplicate per region)
+        setLastOcrEventTs(Date.now())
+        // Update raw feed with duplicate suppression based on normalized text per region
         setRawFeed(prev => {
-          const last = prev.find(p => p.regionId === data.region.id)
-          if (last && last.text === data.region.lastText) return prev
+          const normalized = normalizeOcrText(data.region.lastText || '')
+          const lastSeen = lastRawTextByRegionRef.current.get(data.region.id)
+          if (lastSeen === normalized) return prev
+          lastRawTextByRegionRef.current.set(data.region.id, normalized)
           const updated = [
             { id: `${data.region.id}_${Date.now()}`, regionId: data.region.id, text: data.region.lastText || '', ts: Date.now() },
             ...prev.filter(p => Date.now() - p.ts < 5000)
@@ -233,7 +275,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     return () => {
       cleanupFunctions.forEach(cleanup => cleanup?.())
     }
-  }, [sourceLanguage, targetLanguage]) // Re-register when language settings change
+  }, [sourceLanguage, targetLanguage, listenersVersion]) // Allow manual rebind
 
   // Save language settings when they change (but only after initial load)
   useEffect(() => {
@@ -280,15 +322,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
   return (
     <div ref={contentRef} className="relative space-y-3 px-4 py-3">
 
-      {/* Header */}
-      <div className="bg-transparent w-fit">
-        <div className="pb-3">
-          <h1 className="text-lg font-semibold text-white mb-2">Real-Time Translation</h1>
-          <p className="text-sm text-white/70 mb-4">
-            Select screen regions to monitor for subtitles and get instant translations
-          </p>
-        </div>
-      </div>
+      
 
       {/* Controls */}
       <div className="bg-black/60 backdrop-blur-md rounded-lg p-3 mb-4">
@@ -369,6 +403,8 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
                     <div className="text-sm text-white">{region.lastText}</div>
                   </div>
                 )}
+
+                
               </div>
             ))}
           </div>
@@ -377,7 +413,24 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
 
       {/* Translation History */}
       <div className="bg-black/60 backdrop-blur-md rounded-lg p-4 mb-4">
-        <h2 className="text-md font-medium text-white mb-3">Translation History</h2>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-md font-medium text-white">Translation History</h2>
+            <span className={`inline-block w-2 h-2 rounded-full ${isLive ? 'bg-green-400' : 'bg-red-500'}`} title={isLive ? 'Live (translation events)' : 'Idle'}></span>
+            <span className="text-[10px] text-red-400">{suppressedCountRef.current > 0 ? `dedup: ${suppressedCountRef.current}` : ''}</span>
+            <span className="text-[10px] text-red-400">
+              {lastOcrEventTs ? `ocr:${Math.max(0, Math.floor((nowTs - lastOcrEventTs)/1000))}s` : ''}
+              {lastTranslationEventTs ? ` / trans:${Math.max(0, Math.floor((nowTs - lastTranslationEventTs)/1000))}s` : ''}
+            </span>
+          </div>
+          <button
+            onClick={() => setListenersVersion(v => v + 1)}
+            className="bg-white/10 hover:bg-white/20 text-white/70 px-2 py-1 rounded-md text-[11px] leading-none transition-colors"
+            title="Rebind event listeners"
+          >
+            Reload
+          </button>
+        </div>
         
         {/* Language Selection */}
         <div className="flex flex-wrap items-center gap-3 mb-3 pb-3 border-b border-white/10">
@@ -431,7 +484,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
             <p className="text-xs mt-1">Start monitoring regions to see translation history</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto" ref={historyListRef}>
+          <div className="space-y-2 max-h-64 overflow-y-auto scroll-transparent" ref={historyListRef}>
             {translationHistory.map((item) => (
               <div key={item.id} className="bg-black/40 rounded p-3 border-l-2 border-green-500/30">
                 <div className="flex items-center justify-between mb-2">
@@ -459,7 +512,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
               {translationHistory.length} translation{translationHistory.length !== 1 ? 's' : ''}
             </div>
             <button
-              onClick={() => setTranslationHistory([])}
+              onClick={() => { setTranslationHistory([]); lastHistoryTextByRegionRef.current.clear() }}
               className="bg-white/10 hover:bg-white/20 text-white/70 px-2 py-1 rounded-md text-[11px] leading-none transition-colors"
             >
               Clear History

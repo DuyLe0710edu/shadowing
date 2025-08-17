@@ -22,6 +22,11 @@ export class WindowHelper {
   private step: number = 0
   private currentX: number = 0
   private currentY: number = 0
+  // Virtual desktop bounds across all displays
+  private virtualMinX: number = 0
+  private virtualMaxX: number = 0
+  private virtualMinY: number = 0
+  private virtualMaxY: number = 0
 
   constructor(appState: AppState) {
     this.appState = appState
@@ -33,33 +38,42 @@ export class WindowHelper {
     // Get current window position
     const [currentX, currentY] = this.mainWindow.getPosition()
 
-    // Get screen dimensions
-    const primaryDisplay = screen.getPrimaryDisplay()
-    const workArea = primaryDisplay.workAreaSize
+    // Recalculate virtual bounds in case displays changed
+    const displays = screen.getAllDisplays()
+    this.virtualMinX = Math.min(...displays.map(d => d.bounds.x))
+    this.virtualMinY = Math.min(...displays.map(d => d.bounds.y))
+    this.virtualMaxX = Math.max(...displays.map(d => d.bounds.x + d.bounds.width))
+    this.virtualMaxY = Math.max(...displays.map(d => d.bounds.y + d.bounds.height))
 
     // Use 75% width if debugging has occurred, otherwise use 60%
+    // Fall back to current window width if we cannot compute a reasonable cap
+    const primaryWorkAreaWidth = screen.getPrimaryDisplay().workAreaSize.width
     const maxAllowedWidth = Math.floor(
-      workArea.width * (this.appState.getHasDebugged() ? 0.75 : 0.5)
-    )
+      primaryWorkAreaWidth * (this.appState.getHasDebugged() ? 0.75 : 0.5)
+    ) || (this.windowSize?.width ?? width)
 
     // Ensure width doesn't exceed max allowed width and height is reasonable
     const newWidth = Math.min(width + 32, maxAllowedWidth)
     const newHeight = Math.ceil(height)
 
-    // Center the window horizontally if it would go off screen
-    const maxX = workArea.width - newWidth
-    const newX = Math.min(Math.max(currentX, 0), maxX)
+    // Keep current X/Y but clamp within virtual desktop bounds
+    const minX = this.virtualMinX
+    const maxX = this.virtualMaxX - newWidth
+    const minY = this.virtualMinY
+    const maxY = this.virtualMaxY - newHeight
+    const newX = Math.min(Math.max(currentX, minX), maxX)
+    const newY = Math.min(Math.max(currentY, minY), maxY)
 
     // Update window bounds
     this.mainWindow.setBounds({
       x: newX,
-      y: currentY,
+      y: newY,
       width: newWidth,
       height: newHeight
     })
 
     // Update internal state
-    this.windowPosition = { x: newX, y: currentY }
+    this.windowPosition = { x: newX, y: newY }
     this.windowSize = { width: newWidth, height: newHeight }
     this.currentX = newX
   }
@@ -67,13 +81,19 @@ export class WindowHelper {
   public createWindow(): void {
     if (this.mainWindow !== null) return
 
-    const primaryDisplay = screen.getPrimaryDisplay()
-    const workArea = primaryDisplay.workAreaSize
-    this.screenWidth = workArea.width
-    this.screenHeight = workArea.height
+    // Compute virtual desktop bounds across all displays so we can move
+    // the window freely between monitors using keyboard shortcuts
+    const displays = screen.getAllDisplays()
+    this.virtualMinX = Math.min(...displays.map(d => d.bounds.x))
+    this.virtualMinY = Math.min(...displays.map(d => d.bounds.y))
+    this.virtualMaxX = Math.max(...displays.map(d => d.bounds.x + d.bounds.width))
+    this.virtualMaxY = Math.max(...displays.map(d => d.bounds.y + d.bounds.height))
 
-    this.step = Math.floor(this.screenWidth / 10) // 10 steps
-    this.currentX = 0 // Start at the left
+    this.screenWidth = this.virtualMaxX - this.virtualMinX
+    this.screenHeight = this.virtualMaxY - this.virtualMinY
+
+    this.step = Math.max(20, Math.floor(this.screenWidth / 10)) // ensure sensible step
+    this.currentX = this.virtualMinX // Start at the left-most point of the virtual desktop
 
     const windowSettings: Electron.BrowserWindowConstructorOptions = {
       height: 600,
@@ -212,16 +232,13 @@ export class WindowHelper {
     if (!this.mainWindow) return
 
     const windowWidth = this.windowSize?.width || 0
-    const halfWidth = windowWidth / 2
 
     // Ensure currentX and currentY are numbers
     this.currentX = Number(this.currentX) || 0
     this.currentY = Number(this.currentY) || 0
 
-    this.currentX = Math.min(
-      this.screenWidth - halfWidth,
-      this.currentX + this.step
-    )
+    const maxX = this.virtualMaxX - windowWidth
+    this.currentX = Math.min(maxX, this.currentX + this.step)
     this.mainWindow.setPosition(
       Math.round(this.currentX),
       Math.round(this.currentY)
@@ -232,13 +249,13 @@ export class WindowHelper {
     if (!this.mainWindow) return
 
     const windowWidth = this.windowSize?.width || 0
-    const halfWidth = windowWidth / 2
 
     // Ensure currentX and currentY are numbers
     this.currentX = Number(this.currentX) || 0
     this.currentY = Number(this.currentY) || 0
 
-    this.currentX = Math.max(-halfWidth, this.currentX - this.step)
+    const minX = this.virtualMinX
+    this.currentX = Math.max(minX, this.currentX - this.step)
     this.mainWindow.setPosition(
       Math.round(this.currentX),
       Math.round(this.currentY)
@@ -249,16 +266,13 @@ export class WindowHelper {
     if (!this.mainWindow) return
 
     const windowHeight = this.windowSize?.height || 0
-    const halfHeight = windowHeight / 2
 
     // Ensure currentX and currentY are numbers
     this.currentX = Number(this.currentX) || 0
     this.currentY = Number(this.currentY) || 0
 
-    this.currentY = Math.min(
-      this.screenHeight - halfHeight,
-      this.currentY + this.step
-    )
+    const maxY = this.virtualMaxY - windowHeight
+    this.currentY = Math.min(maxY, this.currentY + this.step)
     this.mainWindow.setPosition(
       Math.round(this.currentX),
       Math.round(this.currentY)
@@ -269,13 +283,13 @@ export class WindowHelper {
     if (!this.mainWindow) return
 
     const windowHeight = this.windowSize?.height || 0
-    const halfHeight = windowHeight / 2
 
     // Ensure currentX and currentY are numbers
     this.currentX = Number(this.currentX) || 0
     this.currentY = Number(this.currentY) || 0
 
-    this.currentY = Math.max(-halfHeight, this.currentY - this.step)
+    const minY = this.virtualMinY
+    this.currentY = Math.max(minY, this.currentY - this.step)
     this.mainWindow.setPosition(
       Math.round(this.currentX),
       Math.round(this.currentY)

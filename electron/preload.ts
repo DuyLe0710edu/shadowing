@@ -230,6 +230,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
     return () => { regionChangedHandler = null }
   },
+  // Expose optional region-deleted listener used by UI cleanup
+  onRegionDeleted: (callback: (data: any) => void) => {
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on('region-deleted', subscription)
+    return () => {
+      ipcRenderer.removeListener('region-deleted', subscription)
+    }
+  },
   
   // Language settings
   onLanguageSettingsRequest: (callback: () => void) => {

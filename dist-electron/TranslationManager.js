@@ -283,7 +283,13 @@ class TranslationManager {
     notifyTranslationReady(translationData) {
         const { BrowserWindow } = require('electron');
         const allWindows = BrowserWindow.getAllWindows();
-        const mainWindow = allWindows.find((window) => !window.isDestroyed() && window.webContents.getURL().includes("index.html"));
+        const mainWindow = allWindows.find((window) => {
+            if (window.isDestroyed())
+                return false;
+            const url = window.webContents.getURL();
+            // Support both dev server and packaged app
+            return url.includes('index.html') || url.startsWith('http://localhost');
+        });
         if (mainWindow) {
             mainWindow.webContents.send('translation-ready', translationData);
         }

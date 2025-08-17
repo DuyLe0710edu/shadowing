@@ -161,6 +161,14 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
         }
         return () => { regionChangedHandler = null; };
     },
+    // Expose optional region-deleted listener used by UI cleanup
+    onRegionDeleted: (callback) => {
+        const subscription = (_, data) => callback(data);
+        electron_1.ipcRenderer.on('region-deleted', subscription);
+        return () => {
+            electron_1.ipcRenderer.removeListener('region-deleted', subscription);
+        };
+    },
     // Language settings
     onLanguageSettingsRequest: (callback) => {
         const subscription = () => callback();
@@ -175,4 +183,8 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
     getLanguageSettings: () => electron_1.ipcRenderer.invoke("get-language-settings"),
     setLanguageSettings: (settings) => electron_1.ipcRenderer.invoke("set-language-settings", settings)
 });
+// Extend the exposed API with a UI-driven translate call
+electron_1.contextBridge.exposeInMainWorld('electronAPI', Object.assign({}, window.electronAPI, {
+    uiTranslateText: (text, source, target) => electron_1.ipcRenderer.invoke('ui-translate-text', { text, source, target })
+}));
 //# sourceMappingURL=preload.js.map

@@ -20,13 +20,14 @@ class AreaSelectionHelper {
     MONITOR_INTERVAL = 1000; // Check every second
     regionsDir;
     ocrServiceManager;
+    lastToggleAtByRegion = new Map();
     constructor(ocrServiceManager) {
         this.regionsDir = node_path_1.default.join(electron_2.app.getPath("userData"), "selected_regions");
         if (!node_fs_1.default.existsSync(this.regionsDir)) {
             node_fs_1.default.mkdirSync(this.regionsDir, { recursive: true });
         }
         this.ocrServiceManager = ocrServiceManager;
-        // Load persisted regions on startup
+        // Load persisted regions on startup, but default them to inactive
         this.loadPersistedRegions();
     }
     async startAreaSelection() {
@@ -110,7 +111,7 @@ class AreaSelectionHelper {
             width: selection.width,
             height: selection.height,
             displayId: primaryDisplay.id,
-            isActive: true
+            isActive: false
         };
         console.log(`[DEBUG] Calculated region coords: x=${region.x}, y=${region.y}, w=${region.width}, h=${region.height}`);
         console.log(`[DEBUG] Region center point: x=${region.x + region.width / 2}, y=${region.y + region.height / 2}`);
@@ -128,15 +129,14 @@ class AreaSelectionHelper {
         this.selectedRegions.set(regionId, region);
         this.saveRegions(); // Persist after adding region
         this.stopAreaSelection();
-        // Create overlay for this region (will show immediately because isActive=true)
+        // Create overlay window but keep hidden until user activates monitoring
         this.createRegionOverlay(region);
-        // Ensure monitoring loop is running
-        if (!this.monitoringInterval) {
-            console.log('[MONITOR] Starting after first region selection');
+        // Start monitoring only if there is at least one active region
+        if (!this.monitoringInterval && Array.from(this.selectedRegions.values()).some(r => r.isActive)) {
+            console.log('[MONITOR] Starting after detecting an active region');
             this.startMonitoring();
         }
-        // Take initial screenshot so the UI populates right away
-        await this.captureRegion(region);
+        // Do not capture while inactive
         // Notify main window about new region
         this.notifyRegionChange('region-added', region);
     }
@@ -320,11 +320,31 @@ class AreaSelectionHelper {
             console.log(`Region ${regionId} not found`);
             return false;
         }
+        // Debounce rapid toggles to avoid race conditions with capture loop
+        const now = Date.now();
+        const last = this.lastToggleAtByRegion.get(regionId) || 0;
+        if (now - last < 250) {
+            return false;
+        }
+        this.lastToggleAtByRegion.set(regionId, now);
         region.isActive = !region.isActive;
         this.saveRegions(); // Persist after toggling region state
         console.log(`Region ${regionId} monitoring ${region.isActive ? 'ENABLED' : 'DISABLED'}`);
-        // Update the overlay to reflect the new state
-        this.updateRegionOverlay(region);
+        // Ensure overlay exists when enabling; remove/hide when disabling
+        const overlay = this.regionOverlays.get(region.id);
+        if (region.isActive) {
+            if (!overlay || overlay.isDestroyed()) {
+                this.createRegionOverlay(region);
+            }
+            else {
+                this.updateRegionOverlay(region);
+            }
+            // Prime capture so UI updates immediately
+            this.captureRegion(region).catch(() => { });
+        }
+        else {
+            this.updateRegionOverlay(region);
+        }
         if (region.isActive && !this.monitoringInterval) {
             console.log(`Starting monitoring interval...`);
             this.startMonitoring();
@@ -347,7 +367,12 @@ class AreaSelectionHelper {
     notifyRegionChange(event, region, filepath) {
         // Find the main window and send the event
         const allWindows = electron_1.BrowserWindow.getAllWindows();
-        const mainWindow = allWindows.find(window => !window.isDestroyed() && window.webContents.getURL().includes("index.html"));
+        const mainWindow = allWindows.find(window => {
+            if (window.isDestroyed())
+                return false;
+            const url = window.webContents.getURL();
+            return url.includes('index.html') || url.startsWith('http://localhost');
+        });
         if (mainWindow) {
             mainWindow.webContents.send(event, { region, filepath });
         }
@@ -578,14 +603,6 @@ class AreaSelectionHelper {
 <body>
     <div class="region-label"></div>
     <div class="active-indicator" style="display: ${region.isActive ? 'block' : 'none'}"></div>
-    <div id="ocrText" style="position:absolute; bottom:4px; left:4px; right:4px; color:white; font-size:10px; font-family: monospace; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-    <script>
-      // Receive live updates from the preload API
-      window.electronOverlayAPI?.onUpdate(({ text }) => {
-        const el = document.getElementById('ocrText');
-        if (el) el.innerText = text;
-      });
-    </script>
 </body>
 </html>
     `;
@@ -626,7 +643,9 @@ class AreaSelectionHelper {
                 // Convert array back to Map
                 if (Array.isArray(regionsData)) {
                     for (const region of regionsData) {
-                        this.selectedRegions.set(region.id, region);
+                        // Default loaded regions to inactive until user explicitly enables
+                        const normalized = { ...region, isActive: false };
+                        this.selectedRegions.set(normalized.id, normalized);
                     }
                     console.log(`[REGIONS] Loaded ${regionsData.length} persisted regions`);
                 }

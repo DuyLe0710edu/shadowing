@@ -174,15 +174,15 @@ const App: React.FC = () => {
   }, [])
 
   return (
-    <div ref={containerRef} className="min-h-0">
+    <div ref={containerRef} className="min-h-0 drag-region">
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           {view === "queue" ? (
-            <Queue setView={setView} />
+            <div className="no-drag"><Queue setView={setView} /></div>
           ) : view === "solutions" ? (
-            <Solutions setView={setView} />
+            <div className="no-drag"><Solutions setView={setView} /></div>
           ) : view === "translation" ? (
-            <Translation setView={setView} />
+            <div className="no-drag"><Translation setView={setView} /></div>
           ) : (
             <></>
           )}
