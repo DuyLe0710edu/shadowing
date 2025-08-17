@@ -6,6 +6,7 @@ import { ShortcutsHelper } from "./shortcuts"
 import { ProcessingHelper } from "./ProcessingHelper"
 import { TranslationManager } from "./TranslationManager"
 import { OCRServiceManager } from "./OCRServiceManager"
+import { SpeechTTSManager } from "./SpeechTTSManager"
 
 export class AppState {
   private static instance: AppState | null = null
@@ -15,6 +16,7 @@ export class AppState {
   public shortcutsHelper: ShortcutsHelper
   public processingHelper: ProcessingHelper
   public translationManager: TranslationManager
+  public speechTTSManager: SpeechTTSManager
   private ocrServiceManager: OCRServiceManager
 
   // View management
@@ -66,6 +68,9 @@ export class AppState {
 
     // Initialize Translation Manager (unified Apple/M2M translation)
     this.translationManager = new TranslationManager(this.ocrServiceManager)
+
+    // Initialize TTS Manager
+    this.speechTTSManager = new SpeechTTSManager(this)
   }
 
   public static getInstance(): AppState {
@@ -198,6 +203,9 @@ export class AppState {
   // Translation methods
   public getTranslationManager(): TranslationManager {
     return this.translationManager
+  }
+  public getSpeechTTSManager(): SpeechTTSManager {
+    return this.speechTTSManager
   }
 
   public async startAreaSelection(): Promise<void> {

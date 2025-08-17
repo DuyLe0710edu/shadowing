@@ -39,6 +39,13 @@ export interface ElectronAPI {
   sendLanguageSettingsResponse?: (settings: { source: string, target: string }) => void
   getLanguageSettings?: () => Promise<{ source: string, target: string }>
   setLanguageSettings?: (settings: { source: string, target: string }) => Promise<boolean>
+
+  // TTS APIs
+  speakText?: (payload: { id: string; text: string; lang?: string; rate?: number }) => Promise<boolean>
+  stopSpeech?: () => Promise<boolean>
+  onTTSProgress?: (callback: (data: { id: string; start: number; end: number }) => void) => () => void
+  onTTSDone?: (callback: (data: { id: string }) => void) => () => void
+  onTTSError?: (callback: (data: { id?: string; error: string }) => void) => () => void
 }
 
 declare global {

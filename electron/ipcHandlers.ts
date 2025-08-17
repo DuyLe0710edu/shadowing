@@ -109,6 +109,24 @@ export function initializeIpcHandlers(appState: AppState): void {
     app.quit()
   })
 
+  // TTS handlers
+  ipcMain.handle('speak-text', async (_evt, payload: { id: string; text: string; lang?: string; rate?: number }) => {
+    try {
+      return appState.getSpeechTTSManager().speak(payload)
+    } catch (e) {
+      console.error('speak-text failed', e)
+      return false
+    }
+  })
+  ipcMain.handle('stop-speech', async () => {
+    try {
+      return appState.getSpeechTTSManager().stop()
+    } catch (e) {
+      console.error('stop-speech failed', e)
+      return false
+    }
+  })
+
   // Translation system handlers
   ipcMain.handle("start-area-selection", async () => {
     return await appState.startAreaSelection()

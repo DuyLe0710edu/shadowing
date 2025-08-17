@@ -1,0 +1,35 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge'
+relocations:
+  - { offset: 0xEEBD5, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge6runnerAA17WordBoundarySynthCvp', symObjAddr: 0xAA60, symBinAddr: 0x10000CD50, symSize: 0x0 }
+  - { offset: 0xEED25, size: 0x8, addend: 0x0, symName: _SpeechTTSBridge_main, symObjAddr: 0x0, symBinAddr: 0x100005964, symSize: 0xA4 }
+  - { offset: 0xEEF66, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge9parseArgsAA0D0VSgyF', symObjAddr: 0xA4, symBinAddr: 0x100005A08, symSize: 0x904 }
+  - { offset: 0xEFBE0, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVSgWOb', symObjAddr: 0x9A8, symBinAddr: 0x10000630C, symSize: 0x48 }
+  - { offset: 0xEFBF4, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledName, symObjAddr: 0x9F0, symBinAddr: 0x100006354, symSize: 0x40 }
+  - { offset: 0xEFC08, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthCMa', symObjAddr: 0xA30, symBinAddr: 0x100006394, symSize: 0x20 }
+  - { offset: 0xEFCDE, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge13SynthDelegateCfETo', symObjAddr: 0xB84, symBinAddr: 0x1000064E8, symSize: 0x14 }
+  - { offset: 0xEFD39, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge13SynthDelegateCMa', symObjAddr: 0xF34, symBinAddr: 0x100006898, symSize: 0x20 }
+  - { offset: 0xEFD4D, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthCfETo', symObjAddr: 0x1094, symBinAddr: 0x1000069F8, symSize: 0x6C }
+  - { offset: 0xEFD7C, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwCP', symObjAddr: 0x1100, symBinAddr: 0x100006A64, symSize: 0x30 }
+  - { offset: 0xEFD90, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwxx', symObjAddr: 0x1130, symBinAddr: 0x100006A94, symSize: 0x30 }
+  - { offset: 0xEFDA4, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwcp', symObjAddr: 0x1160, symBinAddr: 0x100006AC4, symSize: 0x84 }
+  - { offset: 0xEFDB8, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwca', symObjAddr: 0x11E4, symBinAddr: 0x100006B48, symSize: 0xBC }
+  - { offset: 0xEFDCC, size: 0x8, addend: 0x0, symName: ___swift_memcpy69_8, symObjAddr: 0x12A0, symBinAddr: 0x100006C04, symSize: 0x24 }
+  - { offset: 0xEFDE0, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwta', symObjAddr: 0x12C4, symBinAddr: 0x100006C28, symSize: 0x84 }
+  - { offset: 0xEFDF4, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwet', symObjAddr: 0x1348, symBinAddr: 0x100006CAC, symSize: 0x48 }
+  - { offset: 0xEFE08, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVwst', symObjAddr: 0x1390, symBinAddr: 0x100006CF4, symSize: 0x58 }
+  - { offset: 0xEFE1C, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVMa', symObjAddr: 0x13E8, symBinAddr: 0x100006D4C, symSize: 0x10 }
+  - { offset: 0xEFE30, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVWOr', symObjAddr: 0x16B0, symBinAddr: 0x100007014, symSize: 0x48 }
+  - { offset: 0xEFE44, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge4ArgsVWOs', symObjAddr: 0x16F8, symBinAddr: 0x10000705C, symSize: 0x48 }
+  - { offset: 0xF0108, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge13SynthDelegateC17speechSynthesizer_8didStartySo08AVSpeechF0C_So0I9UtteranceCtFTo', symObjAddr: 0xA50, symBinAddr: 0x1000063B4, symSize: 0xD4 }
+  - { offset: 0xF01B1, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge13SynthDelegateCACycfcTo', symObjAddr: 0xB24, symBinAddr: 0x100006488, symSize: 0x2C }
+  - { offset: 0xF0206, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge13SynthDelegateCfD', symObjAddr: 0xB50, symBinAddr: 0x1000064B4, symSize: 0x34 }
+  - { offset: 0xF023D, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthC4argsAcA4ArgsV_tcfc', symObjAddr: 0xB98, symBinAddr: 0x1000064FC, symSize: 0x10C }
+  - { offset: 0xF02D0, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthC5startyyF', symObjAddr: 0xCA4, symBinAddr: 0x100006608, symSize: 0x290 }
+  - { offset: 0xF0484, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthC17speechSynthesizer_016willSpeakRangeOfA6String9utteranceySo08AVSpeechG0C_So8_NSRangeVSo0N9UtteranceCtFTo', symObjAddr: 0xF54, symBinAddr: 0x1000068B8, symSize: 0x80 }
+  - { offset: 0xF04B5, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthC17speechSynthesizer_9didCancelySo08AVSpeechG0C_So0J9UtteranceCtFTo', symObjAddr: 0xFD4, symBinAddr: 0x100006938, symSize: 0x64 }
+  - { offset: 0xF04F3, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthCACycfcTo', symObjAddr: 0x1038, symBinAddr: 0x10000699C, symSize: 0x2C }
+  - { offset: 0xF0548, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthCfD', symObjAddr: 0x1064, symBinAddr: 0x1000069C8, symSize: 0x30 }
+  - { offset: 0xF0579, size: 0x8, addend: 0x0, symName: '_$s15SpeechTTSBridge17WordBoundarySynthC17speechSynthesizer_016willSpeakRangeOfA6String9utteranceySo08AVSpeechG0C_So8_NSRangeVSo0N9UtteranceCtFTf4dndn_n', symObjAddr: 0x13F8, symBinAddr: 0x100006D5C, symSize: 0x1BC }
+...

@@ -9,6 +9,7 @@ const shortcuts_1 = require("./shortcuts");
 const ProcessingHelper_1 = require("./ProcessingHelper");
 const TranslationManager_1 = require("./TranslationManager");
 const OCRServiceManager_1 = require("./OCRServiceManager");
+const SpeechTTSManager_1 = require("./SpeechTTSManager");
 class AppState {
     static instance = null;
     windowHelper;
@@ -16,6 +17,7 @@ class AppState {
     shortcutsHelper;
     processingHelper;
     translationManager;
+    speechTTSManager;
     ocrServiceManager;
     // View management
     view = "queue";
@@ -49,6 +51,8 @@ class AppState {
         this.ocrServiceManager = new OCRServiceManager_1.OCRServiceManager();
         // Initialize Translation Manager (unified Apple/M2M translation)
         this.translationManager = new TranslationManager_1.TranslationManager(this.ocrServiceManager);
+        // Initialize TTS Manager
+        this.speechTTSManager = new SpeechTTSManager_1.SpeechTTSManager(this);
     }
     static getInstance() {
         if (!AppState.instance) {
@@ -144,6 +148,9 @@ class AppState {
     // Translation methods
     getTranslationManager() {
         return this.translationManager;
+    }
+    getSpeechTTSManager() {
+        return this.speechTTSManager;
     }
     async startAreaSelection() {
         await this.translationManager.startAreaSelection();

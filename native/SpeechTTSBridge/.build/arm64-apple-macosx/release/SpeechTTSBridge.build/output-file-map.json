@@ -1,0 +1,12 @@
+{
+  "": {
+    "dependencies": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/SpeechTTSBridge.d",
+    "object": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/SpeechTTSBridge.o",
+    "swift-dependencies": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/master.swiftdeps"
+  },
+  "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift": {
+    "object": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main.swift.o",
+    "swiftmodule": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main.swiftdeps"
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.SpeechTTSBridge-arm64-apple-macosx15.0-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/sources",
+      "importPath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "SpeechTTSBridge",
+      "moduleOutputPath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/Modules/SpeechTTSBridge.swiftmodule",
+      "objects" : [
+        "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx12.0",
+        "-O",
+        "-j11",
+        "-DSWIFT_PACKAGE",
+        "-module-cache-path",
+        "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "SpeechTTSBridge_main",
+        "-swift-version",
+        "5",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "speechttsbridge"
+      ],
+      "outputFileMapPath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/Modules/SpeechTTSBridge.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift"
+      ],
+      "tempsPath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "SpeechTTSBridge" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SpeechTTSBridge",
+      "-package-name",
+      "speechttsbridge",
+      "-whole-module-optimization",
+      "-num-threads",
+      "11",
+      "-c",
+      "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift",
+      "-I",
+      "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx12.0",
+      "-O",
+      "-j11",
+      "-DSWIFT_PACKAGE",
+      "-module-cache-path",
+      "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "SpeechTTSBridge_main",
+      "-swift-version",
+      "5",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "speechttsbridge",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "SpeechTTSBridge" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "writeCommands" : {
+    "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/sources"
+    },
+    "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.build/main.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/SpeechTTSBridge.product/Objects.LinkFileList"
+    },
+    "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

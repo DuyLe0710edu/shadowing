@@ -252,4 +252,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   getLanguageSettings: () => ipcRenderer.invoke("get-language-settings"),
   setLanguageSettings: (settings: { source: string, target: string }) => ipcRenderer.invoke("set-language-settings", settings)
+  ,
+  // TTS
+  speakText: (payload: { id: string; text: string; lang?: string; rate?: number }) => ipcRenderer.invoke('speak-text', payload),
+  stopSpeech: () => ipcRenderer.invoke('stop-speech'),
+  onTTSProgress: (callback: (data: { id: string; start: number; end: number }) => void) => {
+    const sub = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tts-progress', sub)
+    return () => ipcRenderer.removeListener('tts-progress', sub)
+  },
+  onTTSDone: (callback: (data: { id: string }) => void) => {
+    const sub = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tts-done', sub)
+    return () => ipcRenderer.removeListener('tts-done', sub)
+  },
+  onTTSError: (callback: (data: { id?: string; error: string }) => void) => {
+    const sub = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tts-error', sub)
+    return () => ipcRenderer.removeListener('tts-error', sub)
+  }
 } as ElectronAPI)

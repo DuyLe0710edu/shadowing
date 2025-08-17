@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
+import TTSHighlightedText from './TTSHighlightedText'
+import SpeakerIcon from './SpeakerIcon'
 import { useQuery } from "react-query"
 
 interface TranslationProps {
@@ -42,6 +44,8 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
   const [lastTranslationEventTs, setLastTranslationEventTs] = useState<number | null>(null)
   const [lastOcrEventTs, setLastOcrEventTs] = useState<number | null>(null)
   const suppressedCountRef = useRef<number>(0)
+  const [ttsProgress, setTtsProgress] = useState<{ [id: string]: { start: number|null; end: number|null } }>({})
+  const [activeTTSId, setActiveTTSId] = useState<string | null>(null)
   const [nowTs, setNowTs] = useState<number>(Date.now())
   const contentRef = useRef<HTMLDivElement>(null)
   const rawListRef = useRef<HTMLDivElement>(null)
@@ -67,6 +71,18 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     return () => clearInterval(t)
   }, [])
   const isLive = lastTranslationEventTs !== null && (nowTs - lastTranslationEventTs) < 5000
+
+  // Bind TTS events once
+  useEffect(() => {
+    const off1 = window.electronAPI.onTTSProgress?.((data) => {
+      setTtsProgress(prev => ({ ...prev, [data.id]: { start: data.start, end: data.end } }))
+    })
+    const off2 = window.electronAPI.onTTSDone?.((data) => {
+      setActiveTTSId(curr => (curr === data.id ? null : curr))
+    })
+    const off3 = window.electronAPI.onTTSError?.((_data) => {})
+    return () => { off1?.(); off2?.(); off3?.() }
+  }, [])
 
   const languages = [
     { code: 'auto', name: 'Auto-detect', flag: '🌐' },
@@ -501,7 +517,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto scroll-transparent" ref={historyListRef}>
             {translationHistory.map((item) => (
-              <div key={item.id} className="bg-black/40 rounded p-3 border-l-2 border-green-500/30">
+              <div key={item.id} className="relative bg-black/40 rounded p-3 border-l-2 border-green-500/30">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs text-white/60">
                     Region {item.regionId.substring(0, 8)} • {new Date(item.timestamp).toLocaleTimeString()}
@@ -514,8 +530,25 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
                   <span className="font-medium">Original:</span> {item.originalText}
                 </div>
                 <div className="text-sm text-green-300 font-medium">
-                  {item.translation}
+                  {activeTTSId === item.id ? (
+                    <TTSHighlightedText text={item.translation} start={ttsProgress[item.id]?.start ?? null} end={ttsProgress[item.id]?.end ?? null} />
+                  ) : (
+                    <span>{item.translation}</span>
+                  )}
                 </div>
+                <button
+                  className={`absolute bottom-2 right-2 p-2 rounded-md transition-colors ${activeTTSId === item.id ? 'bg-white/10' : 'bg-white/5 hover:bg-white/10'} text-white/80`}
+                  title="Speak translation"
+                  onClick={() => {
+                    if (activeTTSId && activeTTSId !== item.id) {
+                      window.electronAPI.stopSpeech?.()
+                    }
+                    setActiveTTSId(item.id)
+                    window.electronAPI.speakText?.({ id: item.id, text: item.translation, lang: targetLanguage, rate: 0.4 })
+                  }}
+                >
+                  <SpeakerIcon className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>

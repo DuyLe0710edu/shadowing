@@ -1,0 +1,6 @@
+version: "Apple Swift version 6.0.2 (swiftlang-6.0.2.1.2 clang-1600.0.26.4)"
+options: "13d6f2424268b86b9a5ab976a5793584228906013a83a3f1057f5d4c8a793a9d"
+build_start_time: [1755414567, 188616000]
+build_end_time: [1755414571, 154000000]
+inputs:
+  "/Users/duy.ggy/shadowing/native/SpeechTTSBridge/Sources/main.swift": [1755413997, 504477480]

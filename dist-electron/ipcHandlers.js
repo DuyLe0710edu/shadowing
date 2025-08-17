@@ -102,6 +102,25 @@ function initializeIpcHandlers(appState) {
     electron_1.ipcMain.handle("quit-app", () => {
         electron_1.app.quit();
     });
+    // TTS handlers
+    electron_1.ipcMain.handle('speak-text', async (_evt, payload) => {
+        try {
+            return appState.getSpeechTTSManager().speak(payload);
+        }
+        catch (e) {
+            console.error('speak-text failed', e);
+            return false;
+        }
+    });
+    electron_1.ipcMain.handle('stop-speech', async () => {
+        try {
+            return appState.getSpeechTTSManager().stop();
+        }
+        catch (e) {
+            console.error('stop-speech failed', e);
+            return false;
+        }
+    });
     // Translation system handlers
     electron_1.ipcMain.handle("start-area-selection", async () => {
         return await appState.startAreaSelection();

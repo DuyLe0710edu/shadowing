@@ -67,6 +67,13 @@ declare global {
       onRegionAdded: (callback: (data: any) => void) => () => void
       onRegionChanged: (callback: (data: any) => void) => () => void
       onRegionDeleted?: (callback: (data: any) => void) => () => void
+
+      // TTS
+      speakText?: (payload: { id: string; text: string; lang?: string; rate?: number }) => Promise<boolean>
+      stopSpeech?: () => Promise<boolean>
+      onTTSProgress?: (callback: (data: { id: string; start: number; end: number }) => void) => () => void
+      onTTSDone?: (callback: (data: { id: string }) => void) => () => void
+      onTTSError?: (callback: (data: { id?: string; error: string }) => void) => () => void
     }
   }
 }

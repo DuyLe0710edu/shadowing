@@ -181,6 +181,24 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
         electron_1.ipcRenderer.send("language-settings-response", settings);
     },
     getLanguageSettings: () => electron_1.ipcRenderer.invoke("get-language-settings"),
-    setLanguageSettings: (settings) => electron_1.ipcRenderer.invoke("set-language-settings", settings)
+    setLanguageSettings: (settings) => electron_1.ipcRenderer.invoke("set-language-settings", settings),
+    // TTS
+    speakText: (payload) => electron_1.ipcRenderer.invoke('speak-text', payload),
+    stopSpeech: () => electron_1.ipcRenderer.invoke('stop-speech'),
+    onTTSProgress: (callback) => {
+        const sub = (_, data) => callback(data);
+        electron_1.ipcRenderer.on('tts-progress', sub);
+        return () => electron_1.ipcRenderer.removeListener('tts-progress', sub);
+    },
+    onTTSDone: (callback) => {
+        const sub = (_, data) => callback(data);
+        electron_1.ipcRenderer.on('tts-done', sub);
+        return () => electron_1.ipcRenderer.removeListener('tts-done', sub);
+    },
+    onTTSError: (callback) => {
+        const sub = (_, data) => callback(data);
+        electron_1.ipcRenderer.on('tts-error', sub);
+        return () => electron_1.ipcRenderer.removeListener('tts-error', sub);
+    }
 });
 //# sourceMappingURL=preload.js.map
