@@ -115,18 +115,6 @@ function initializeIpcHandlers(appState) {
     electron_1.ipcMain.handle("toggle-region-monitoring", async (event, regionId) => {
         return await appState.getTranslationManager().toggleRegionMonitoring(regionId);
     });
-    // One-off translation request from renderer (UI-driven path)
-    electron_1.ipcMain.handle("ui-translate-text", async (event, payload) => {
-        try {
-            const { text, source, target } = payload;
-            const result = await appState.getTranslationManager().translateText(text, source || 'auto', target || 'en');
-            return { ok: true, result };
-        }
-        catch (error) {
-            console.error('[UI] translate-text failed:', error);
-            return { ok: false, error: error.message || 'translate failed' };
-        }
-    });
     // Language settings handlers
     const getSettingsFilePath = () => node_path_1.default.join(electron_1.app.getPath("userData"), "settings.json");
     const loadPersistedSettings = () => {

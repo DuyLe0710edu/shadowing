@@ -139,6 +139,14 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
 
   // Load selected regions and language settings on component mount
   useEffect(() => {
+    // Load persisted translation history
+    try {
+      const raw = localStorage.getItem('translationHistory')
+      if (raw) {
+        const list = JSON.parse(raw)
+        if (Array.isArray(list)) setTranslationHistory(list)
+      }
+    } catch {}
     const loadRegions = async () => {
       try {
         const regions = await window.electronAPI.getSelectedRegions()
@@ -203,22 +211,29 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         // Update translations
         setTranslations(prev => new Map(prev.set(data.regionId, data.translation)))
         
-        // Add to translation history with duplicate suppression (per region; keep earliest)
+        // Time-window dedup: allow repeats after 8s
         setTranslationHistory(prev => {
           const normalized = normalizeOcrText(data.originalText)
           const lastSeen = lastHistoryTextByRegionRef.current.get(data.regionId)
-          if (lastSeen === normalized) {
+          const allowRepeatAfterMs = 8000
+          const lastItemForRegion = prev.find(p => p.regionId === data.regionId)
+          const tooSoonRepeat = lastItemForRegion && lastItemForRegion.originalText &&
+            normalizeOcrText(lastItemForRegion.originalText) === normalized &&
+            (data.timestamp - lastItemForRegion.timestamp) < allowRepeatAfterMs
+          if (tooSoonRepeat) {
             suppressedCountRef.current += 1
             return prev
           }
           lastHistoryTextByRegionRef.current.set(data.regionId, normalized)
-          return [{
+          const next = [{
             id: `${data.regionId}_${data.timestamp}`,
             regionId: data.regionId,
             originalText: data.originalText,
             translation: data.translation,
             timestamp: data.timestamp
-          }, ...prev.slice(0, 49)] // Keep last 50 translations
+          }, ...prev].slice(0, 200)
+          try { localStorage.setItem('translationHistory', JSON.stringify(next)) } catch {}
+          return next
         })
         
         // Auto-scroll to top of translation history list

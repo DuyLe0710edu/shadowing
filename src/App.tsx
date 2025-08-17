@@ -144,6 +144,25 @@ const App: React.FC = () => {
         setView("solutions")
         console.log("starting processing")
       }),
+      // Persist translation history globally so it keeps updating even when
+      // Translation page is not mounted
+      window.electronAPI.onTranslationReady((data: any) => {
+        try {
+          const key = 'translationHistory'
+          const raw = localStorage.getItem(key)
+          const list = raw ? JSON.parse(raw) : []
+          const next = [{
+            id: `${data.regionId}_${data.timestamp}`,
+            regionId: data.regionId,
+            originalText: data.originalText,
+            translation: data.translation,
+            timestamp: data.timestamp
+          }, ...list].slice(0, 200)
+          localStorage.setItem(key, JSON.stringify(next))
+        } catch (err) {
+          console.warn('[UI] Failed to persist translation history:', (err as any)?.message)
+        }
+      }),
 
       window.electronAPI.onUnauthorized(() => {
         queryClient.removeQueries(["screenshots"])

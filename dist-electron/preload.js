@@ -183,8 +183,4 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
     getLanguageSettings: () => electron_1.ipcRenderer.invoke("get-language-settings"),
     setLanguageSettings: (settings) => electron_1.ipcRenderer.invoke("set-language-settings", settings)
 });
-// Extend the exposed API with a UI-driven translate call
-electron_1.contextBridge.exposeInMainWorld('electronAPI', Object.assign({}, window.electronAPI, {
-    uiTranslateText: (text, source, target) => electron_1.ipcRenderer.invoke('ui-translate-text', { text, source, target })
-}));
 //# sourceMappingURL=preload.js.map
