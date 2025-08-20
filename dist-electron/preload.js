@@ -199,6 +199,8 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
         const sub = (_, data) => callback(data);
         electron_1.ipcRenderer.on('tts-error', sub);
         return () => electron_1.ipcRenderer.removeListener('tts-error', sub);
-    }
+    },
+    // Notecards
+    generateNotecards: (payload) => electron_1.ipcRenderer.invoke('generate-notecards', payload)
 });
 //# sourceMappingURL=preload.js.map

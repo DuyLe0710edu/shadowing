@@ -2,6 +2,7 @@ import { ToastProvider } from "./components/ui/toast"
 import Queue from "./_pages/Queue"
 import Solutions from "./_pages/Solutions"
 import Translation from "./_pages/Translation"
+import Notecard from "./_pages/Notecard"
 import { ToastViewport } from "@radix-ui/react-toast"
 import { useEffect, useRef, useState } from "react"
 import { QueryClient, QueryClientProvider } from "react-query"
@@ -88,8 +89,9 @@ const queryClient = new QueryClient({
 })
 
 const App: React.FC = () => {
-  const [view, setView] = useState<"queue" | "solutions" | "translation">("queue")
+  const [view, setView] = useState<"queue" | "solutions" | "translation" | "notecards">("queue")
   const containerRef = useRef<HTMLDivElement>(null)
+  const setViewBase = setView as React.Dispatch<React.SetStateAction<'queue' | 'solutions' | 'translation'>>
 
   // Effect for height monitoring
   useEffect(() => {
@@ -204,11 +206,13 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           {view === "queue" ? (
-            <div className="no-drag"><Queue setView={setView} /></div>
+            <div className="no-drag"><Queue setView={setViewBase} /></div>
           ) : view === "solutions" ? (
-            <div className="no-drag"><Solutions setView={setView} /></div>
+            <div className="no-drag"><Solutions setView={setViewBase} /></div>
           ) : view === "translation" ? (
-            <div className="no-drag"><Translation setView={setView} /></div>
+            <div className="no-drag"><Translation setView={setViewBase} /></div>
+          ) : view === "notecards" ? (
+            <div className="no-drag"><Notecard setView={setView} /></div>
           ) : (
             <></>
           )}

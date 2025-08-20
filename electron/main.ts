@@ -106,6 +106,11 @@ export class AppState {
     return this.problemInfo
   }
 
+  // Expose processing helper to other handlers
+  public getProcessingHelper(): ProcessingHelper {
+    return this.processingHelper
+  }
+
   public setProblemInfo(problemInfo: any): void {
     this.problemInfo = problemInfo
   }

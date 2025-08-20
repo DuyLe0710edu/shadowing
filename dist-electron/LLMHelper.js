@@ -156,6 +156,40 @@ class LLMHelper {
             throw error;
         }
     }
+    // Generate concise bilingual flashcards from recent subtitle pairs
+    async generateVocabCards(pairs, sourceLang, targetLang, limit = 30) {
+        try {
+            const trimmed = pairs
+                .filter(p => (p.originalText || '').trim() && (p.translation || '').trim())
+                .slice(0, limit);
+            const prompt = `You create bilingual study flashcards from subtitle lines. Rules:\n- Output at most one flashcard per input pair to preserve order (first pairs first).\n- Each flashcard is a concise vocabulary item or short phrase (1–4 words, <= 40 chars).\n- Avoid punctuation noise, timestamps, random codes, or empty items.\n- Use original phrase on 'front' in ${sourceLang}; use a clean translation/gloss on 'back' in ${targetLang}.\n- Format: a JSON array of objects: [{"id":"string","front":"...","back":"..."}].\n- No markdown, no commentary. JSON array only.\n\nINPUT_PAIRS:\n${JSON.stringify(trimmed, null, 2)}`;
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            const text = this.cleanJsonResponse(response.text());
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed))
+                return parsed.slice(0, limit);
+            return trimmed.map((p, idx) => this.fallbackVocabFromPair(p, idx));
+        }
+        catch (error) {
+            console.warn('[LLMHelper] generateVocabCards fallback due to error:', error?.message);
+            const fallback = pairs.slice(0, limit).map((p, idx) => this.fallbackVocabFromPair(p, idx));
+            return fallback;
+        }
+    }
+    fallbackVocabFromPair(pair, idx) {
+        const src = (pair.originalText || '').trim();
+        const tgt = (pair.translation || '').trim();
+        // Heuristic: pick first 1–3 words or truncate to 40 chars
+        const words = src.split(/\s+/).filter(Boolean);
+        let front = words.slice(0, Math.min(3, words.length)).join(' ');
+        if (!front || front.length > 40)
+            front = src.slice(0, 40);
+        let back = tgt;
+        if (back.length > 80)
+            back = back.slice(0, 80);
+        return { id: `pair_${idx}`, front, back };
+    }
 }
 exports.LLMHelper = LLMHelper;
 //# sourceMappingURL=LLMHelper.js.map

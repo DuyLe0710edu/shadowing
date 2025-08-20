@@ -177,5 +177,16 @@ function initializeIpcHandlers(appState) {
         saveSettings(settings); // Persist to disk
         console.log('Language settings received from renderer:', settings);
     });
+    // Notecard generation
+    electron_1.ipcMain.handle('generate-notecards', async (_evt, payload) => {
+        try {
+            const list = await appState.getProcessingHelper().getLLMHelper().generateVocabCards(payload.items, payload.source, payload.target, payload.limit ?? 30);
+            return list;
+        }
+        catch (e) {
+            console.error('generate-notecards failed:', e?.message);
+            return [];
+        }
+    });
 }
 //# sourceMappingURL=ipcHandlers.js.map

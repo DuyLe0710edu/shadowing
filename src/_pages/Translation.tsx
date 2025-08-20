@@ -71,6 +71,10 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
     return () => clearInterval(t)
   }, [])
   const isLive = lastTranslationEventTs !== null && (nowTs - lastTranslationEventTs) < 5000
+  
+  // Collapsible panels (default collapsed to prioritize history)
+  const [showSelectedRegionsPanel, setShowSelectedRegionsPanel] = useState<boolean>(false)
+  const [showHowToUsePanel, setShowHowToUsePanel] = useState<boolean>(false)
 
   // Bind TTS events once
   useEffect(() => {
@@ -383,15 +387,29 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
           >
             Solutions
           </button>
+
+          <button
+            onClick={() => setView('notecards' as any)}
+            className="bg-white/10 hover:bg-white/20 text-white/70 px-2 py-1 rounded-md text-[11px] leading-none transition-colors"
+          >
+            Notecard
+          </button>
           
         </div>
       </div>
 
-      {/* Selected Regions */}
+      {/* Selected Regions (collapsible) */}
       <div className="bg-black/60 backdrop-blur-md rounded-lg p-4">
-        <h2 className="text-md font-medium text-white mb-3">Selected Regions</h2>
-        
-        {selectedRegions.length === 0 ? (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-md font-medium text-white">Selected Regions</h2>
+          <button
+            onClick={() => setShowSelectedRegionsPanel(v => !v)}
+            className="text-white/70 text-[11px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-md leading-none"
+          >
+            {showSelectedRegionsPanel ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {showSelectedRegionsPanel && (selectedRegions.length === 0 ? (
           <div className="text-center py-8 text-white/50">
             <p>No regions selected yet</p>
             <p className="text-sm mt-1">Click "Select Region" to get started</p>
@@ -439,7 +457,7 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
               </div>
             ))}
           </div>
-        )}
+        ))}
       </div>
 
       {/* Translation History */}
@@ -569,15 +587,25 @@ const Translation: React.FC<TranslationProps> = ({ setView }) => {
         )}
       </div>
 
-      {/* Instructions */}
+      {/* Instructions (collapsible) */}
       <div className="bg-black/40 backdrop-blur-md rounded-lg p-4">
-        <h3 className="text-sm font-medium text-white mb-2">How to Use:</h3>
-        <ol className="text-xs text-white/70 space-y-1">
-          <li>1. Click "Select Region" to choose an area on your screen</li>
-          <li>2. Drag to select the subtitle area of your movie/video</li>
-          <li>3. Toggle "Monitoring" to start real-time translation</li>
-          <li>4. Translations appear as floating overlays AND in history above</li>
-        </ol>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-white">How to Use</h3>
+          <button
+            onClick={() => setShowHowToUsePanel(v => !v)}
+            className="text-white/70 text-[11px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-md leading-none"
+          >
+            {showHowToUsePanel ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {showHowToUsePanel && (
+          <ol className="mt-2 text-xs text-white/70 space-y-1">
+            <li>1. Click "Select Region" to choose an area on your screen</li>
+            <li>2. Drag to select the subtitle area of your movie/video</li>
+            <li>3. Toggle "Monitoring" to start real-time translation</li>
+            <li>4. Translations appear as floating overlays AND in history above</li>
+          </ol>
+        )}
       </div>
     </div>
   )

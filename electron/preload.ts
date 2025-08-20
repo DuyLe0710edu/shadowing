@@ -256,6 +256,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // TTS
   speakText: (payload: { id: string; text: string; lang?: string; rate?: number }) => ipcRenderer.invoke('speak-text', payload),
   stopSpeech: () => ipcRenderer.invoke('stop-speech'),
+  checkSpeechStatus: () => ipcRenderer.invoke('check-speech-status'),
   onTTSProgress: (callback: (data: { id: string; start: number; end: number }) => void) => {
     const sub = (_: any, data: any) => callback(data)
     ipcRenderer.on('tts-progress', sub)
@@ -270,5 +271,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const sub = (_: any, data: any) => callback(data)
     ipcRenderer.on('tts-error', sub)
     return () => ipcRenderer.removeListener('tts-error', sub)
-  }
+  },
+  // Notecards
+  generateNotecards: (payload: { items: Array<{ originalText: string; translation: string }>, source: string, target: string, limit?: number }) => ipcRenderer.invoke('generate-notecards', payload)
 } as ElectronAPI)

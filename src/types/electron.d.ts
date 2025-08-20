@@ -46,6 +46,7 @@ export interface ElectronAPI {
   onTTSProgress?: (callback: (data: { id: string; start: number; end: number }) => void) => () => void
   onTTSDone?: (callback: (data: { id: string }) => void) => () => void
   onTTSError?: (callback: (data: { id?: string; error: string }) => void) => () => void
+  generateNotecards?: (payload: { items: Array<{ originalText: string; translation: string }>, source: string, target: string, limit?: number }) => Promise<Array<{ id: string; front: string; back: string }>>
 }
 
 declare global {

@@ -80,6 +80,10 @@ class AppState {
     getProblemInfo() {
         return this.problemInfo;
     }
+    // Expose processing helper to other handlers
+    getProcessingHelper() {
+        return this.processingHelper;
+    }
     setProblemInfo(problemInfo) {
         this.problemInfo = problemInfo;
     }

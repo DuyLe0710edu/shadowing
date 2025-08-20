@@ -191,4 +191,15 @@ export function initializeIpcHandlers(appState: AppState): void {
     saveSettings(settings) // Persist to disk
     console.log('Language settings received from renderer:', settings)
   })
+
+  // Notecard generation
+  ipcMain.handle('generate-notecards', async (_evt, payload: { items: Array<{ originalText: string; translation: string }>, source: string, target: string, limit?: number }) => {
+    try {
+      const list = await appState.getProcessingHelper().getLLMHelper().generateVocabCards(payload.items, payload.source, payload.target, payload.limit ?? 30)
+      return list
+    } catch (e: any) {
+      console.error('generate-notecards failed:', e?.message)
+      return []
+    }
+  })
 }
