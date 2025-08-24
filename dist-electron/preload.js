@@ -185,6 +185,7 @@ electron_1.contextBridge.exposeInMainWorld("electronAPI", {
     // TTS
     speakText: (payload) => electron_1.ipcRenderer.invoke('speak-text', payload),
     stopSpeech: () => electron_1.ipcRenderer.invoke('stop-speech'),
+    checkSpeechStatus: () => electron_1.ipcRenderer.invoke('check-speech-status'),
     onTTSProgress: (callback) => {
         const sub = (_, data) => callback(data);
         electron_1.ipcRenderer.on('tts-progress', sub);
